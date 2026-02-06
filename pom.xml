@@ -9,7 +9,8 @@
 	<name>migration-root</name>
 	<description>Migration Root Project</description>
     <modules>
-        <module>java/migration-controller</module>
-        <module>java/migration-worker</module>
+        <module>java/mig-controller</module>
+        <module>java/mig-worker</module>
+        <module>java/mig-common</module>
     </modules>
 </project>

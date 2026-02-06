@@ -1,0 +1,28 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "java",
+            "name": "Run Mig Controller",
+            "request": "launch",
+            "mainClass": "com.yojori.migration.controller.MigrationControllerApplication",
+            "projectName": "mig-controller",
+            "cwd": "${workspaceFolder}/java/mig-controller",
+            "env": {
+                "SPRING_PROFILES_ACTIVE": "dev"
+            }
+        },
+        {
+            "type": "java",
+            "name": "Run Mig Worker",
+            "request": "launch",
+            "mainClass": "com.yojori.migration.worker.MigrationWorkerApplication",
+            "projectName": "mig-worker",
+            "cwd": "${workspaceFolder}/java/mig-worker",
+            "env": {
+                "SPRING_PROFILES_ACTIVE": "dev"
+            }
+        }
+    ]
+}
+    

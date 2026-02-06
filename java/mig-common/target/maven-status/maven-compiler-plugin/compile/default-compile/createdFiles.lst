@@ -1,0 +1,7 @@
+com\yojori\db\query\Dummy.class
+com\yojori\db\query\Insert.class
+com\yojori\db\query\Query.class
+com\yojori\db\query\Select.class
+com\yojori\db\query\InterfaceQuery.class
+com\yojori\db\query\Delete.class
+com\yojori\db\query\Update.class
