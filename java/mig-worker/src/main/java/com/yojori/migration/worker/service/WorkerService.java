@@ -96,12 +96,21 @@ public class WorkerService implements CommandLineRunner, InitializingBean {
             // Get Config
             MigrationSchema schema = workerClient.getTaskConfig(taskId);
 
-            // Execute Logic
-            migrationExecutor.execute(schema);
+            // Execute Logic with Listener
+            migrationExecutor.execute(schema, (read, proc) -> {
+                status.setReadCount(read);
+                status.setProcessedCount(proc);
+                status.setStatus("RUNNING"); // Ensure status is RUNNING
+                try {
+                    workerClient.updateStatus(status);
+                } catch (Exception e) {
+                    log.error("Failed to update progress: " + e.getMessage());
+                }
+            });
 
             // Update Status: COMPLETED
             status.setStatus("COMPLETED");
-            status.setProcessedCount(100L); // TODO: Return count from executor
+            // status.setProcessedCount(100L); // Processed count already updated by listener
             workerClient.updateStatus(status);
 
         } catch (Exception e) {

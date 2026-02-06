@@ -27,6 +27,7 @@ C:\jaeslee\vs-project\mig-spring\java\mig-worker\src\main\java\com\yojori\db\que
 C:\jaeslee\vs-project\mig-spring\java\mig-worker\src\main\java\com\yojori\migration\worker\strategy\impl\TableMigrationStrategy.java
 C:\jaeslee\vs-project\mig-spring\java\mig-worker\src\main\java\com\yojori\migration\worker\model\MigrationList.java
 C:\jaeslee\vs-project\mig-spring\java\mig-worker\src\main\java\com\yojori\migration\worker\strategy\AbstractMigrationStrategy.java
+C:\jaeslee\vs-project\mig-spring\java\mig-worker\src\main\java\com\yojori\migration\worker\strategy\ProgressListener.java
 C:\jaeslee\vs-project\mig-spring\java\mig-worker\src\main\java\com\yojori\db\query\Delete.java
 C:\jaeslee\vs-project\mig-spring\java\mig-worker\src\main\java\com\yojori\migration\worker\strategy\impl\ThreadIdxMigrationStrategy.java
 C:\jaeslee\vs-project\mig-spring\java\mig-worker\src\main\java\com\yojori\migration\worker\strategy\impl\ThreadMigrationStrategy.java

@@ -8,5 +8,6 @@ public class WorkerStatus {
     private String taskId;
     private String status; // START, RUNNING, COMPLETED, FAILED
     private String message;
+    private long readCount;
     private long processedCount;
 }

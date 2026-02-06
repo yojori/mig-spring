@@ -16,6 +16,8 @@ import java.util.Map;
 import java.util.ArrayList;
 // import java.util.HashMap;
 
+import com.yojori.migration.worker.strategy.ProgressListener;
+
 @Component("THREAD_MULTI")
 public class ThreadMultiMigrationStrategy extends AbstractMigrationStrategy {
 
@@ -26,7 +28,7 @@ public class ThreadMultiMigrationStrategy extends AbstractMigrationStrategy {
     private KeysetMigrationStrategy keysetMigrationStrategy;
 
     @Override
-    public void execute(MigrationSchema schema, MigrationList workList) throws Exception {
+    public void execute(MigrationSchema schema, MigrationList workList, ProgressListener listener) throws Exception {
         logStart("THREAD_MULTI_DISPATCHER: " + workList.getMig_name());
         
         // 0. Check if this is a Child Task (Executor) or Parent Task (Dispatcher)
@@ -36,7 +38,7 @@ public class ThreadMultiMigrationStrategy extends AbstractMigrationStrategy {
             log.info("Executing Child Task Logic (Delegating to Keyset Strategy) with params: {}", workList.getParam_string());
             
             // Delegate to KeysetMigrationStrategy (Bean)
-            keysetMigrationStrategy.execute(schema, workList);
+            keysetMigrationStrategy.execute(schema, workList, listener);
             return;
         }
 

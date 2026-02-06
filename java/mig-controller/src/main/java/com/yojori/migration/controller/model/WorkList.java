@@ -14,6 +14,8 @@ public class WorkList extends Search {
     private Date start_date;
     private Date end_date;
     private String result_msg;
+    private long read_count;
+    private long proc_count;
     private Date create_date;
     
     // Status Constants

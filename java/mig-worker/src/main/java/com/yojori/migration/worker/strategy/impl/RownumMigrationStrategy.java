@@ -15,12 +15,13 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import com.yojori.migration.worker.strategy.ProgressListener;
 
 @Component("ROWNUM")
 public class RownumMigrationStrategy extends AbstractMigrationStrategy {
 
     @Override
-    public void execute(MigrationSchema schema, MigrationList workList) throws Exception {
+    public void execute(MigrationSchema schema, MigrationList workList, ProgressListener listener) throws Exception {
         logStart(workList.getMig_name());
 
         // 1. 유효성 검사 및 테이블 정보 획득
@@ -92,6 +93,14 @@ public class RownumMigrationStrategy extends AbstractMigrationStrategy {
 
         ExecutorService executor = Executors.newFixedThreadPool(threadCount);
         AtomicInteger totalProcessed = new AtomicInteger(0);
+        AtomicInteger totalRead = new AtomicInteger(0);
+        java.util.Timer progressTimer = new java.util.Timer(true);
+        progressTimer.scheduleAtFixedRate(new java.util.TimerTask() {
+            @Override
+            public void run() {
+                if (listener != null) listener.onProgress(totalRead.get(), totalProcessed.get());
+            }
+        }, 1000, 3000);
         
         try {
             for (int i = 0; i < chunkKeys.size(); i++) {
@@ -104,7 +113,7 @@ public class RownumMigrationStrategy extends AbstractMigrationStrategy {
 
                 executor.submit(() -> {
                     try {
-                        processChunk(chunkIndex, startKey, nextKey, finalPkCols, finalTableName, schema, workList, totalProcessed);
+                        processChunk(chunkIndex, startKey, nextKey, finalPkCols, finalTableName, schema, workList, totalProcessed, totalRead);
                     } catch (Exception e) {
                         log.error("Chunk " + chunkIndex + " failed", e);
                     }
@@ -119,9 +128,12 @@ public class RownumMigrationStrategy extends AbstractMigrationStrategy {
             log.error("Migration execution failed", e);
             executor.shutdownNow();
             throw e;
+        } finally {
+            if (progressTimer != null) progressTimer.cancel();
         }
 
         log.info("Total Processed Rows: {}", totalProcessed.get());
+        if (listener != null) listener.onProgress(totalRead.get(), totalProcessed.get());
         logEnd(workList.getMig_name(), System.currentTimeMillis());
     }
 
@@ -173,7 +185,7 @@ public class RownumMigrationStrategy extends AbstractMigrationStrategy {
         return keys;
     }
 
-    private void processChunk(int chunkIndex, Map<String, Object> startKey, Map<String, Object> nextKey, String[] pkCols, String tableName, MigrationSchema schema, MigrationList workList, AtomicInteger totalProcessed) {
+    private void processChunk(int chunkIndex, Map<String, Object> startKey, Map<String, Object> nextKey, String[] pkCols, String tableName, MigrationSchema schema, MigrationList workList, AtomicInteger totalProcessed, AtomicInteger totalRead) {
         Connection sourceConn = null;
         Connection targetConn = null;
         PreparedStatement sourcePstmt = null;
@@ -251,6 +263,8 @@ public class RownumMigrationStrategy extends AbstractMigrationStrategy {
                 rowCount++;
             }
             
+            totalRead.addAndGet(rowCount);
+
             executeBatch(targetPstmts);
             targetConn.commit();
             

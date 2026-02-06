@@ -15,12 +15,13 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import com.yojori.migration.worker.strategy.ProgressListener;
 
 @Component("THREAD_IDX")
 public class KeysetMigrationStrategy extends AbstractMigrationStrategy {
 
     @Override
-    public void execute(MigrationSchema schema, MigrationList workList) throws Exception {
+    public void execute(MigrationSchema schema, MigrationList workList, ProgressListener listener) throws Exception {
         logStart(workList.getMig_name());
         log.info("Starting Migration [THREAD_IDX Strategy]");
 
@@ -95,6 +96,14 @@ public class KeysetMigrationStrategy extends AbstractMigrationStrategy {
         
         ExecutorService executor = Executors.newFixedThreadPool(threadCount);
         AtomicInteger totalProcessed = new AtomicInteger(0);
+        AtomicInteger totalRead = new AtomicInteger(0);
+        java.util.Timer progressTimer = new java.util.Timer(true);
+        progressTimer.scheduleAtFixedRate(new java.util.TimerTask() {
+            @Override
+            public void run() {
+                if (listener != null) listener.onProgress(totalRead.get(), totalProcessed.get());
+            }
+        }, 1000, 3000);
         
         final String finalTableName = tableName;
         
@@ -110,7 +119,7 @@ public class KeysetMigrationStrategy extends AbstractMigrationStrategy {
                         // Pass nextKey to strictly bound the chunk if we want, but Keyset Strategy
                         // usually just seeks and LIMITs. Range bounding helps safety.
                         // For now, keeping original processChunk logic but we could optimize.
-                        processChunk(chunkIndex, startKey, pkCols, finalTableName, schema, chunkLimit, totalProcessed);
+                        processChunk(chunkIndex, startKey, pkCols, finalTableName, schema, chunkLimit, totalProcessed, totalRead);
                     } catch (Exception e) {
                         log.error("Chunk " + chunkIndex + " failed", e);
                     }
@@ -125,9 +134,12 @@ public class KeysetMigrationStrategy extends AbstractMigrationStrategy {
             log.error("Migration execution failed", e);
             executor.shutdownNow();
             throw e;
+        } finally {
+            if (progressTimer != null) progressTimer.cancel();
         }
 
         log.info("Total Processed Rows: {}", totalProcessed.get());
+        if (listener != null) listener.onProgress(totalRead.get(), totalProcessed.get());
         logEnd(workList.getMig_name(), System.currentTimeMillis());
     }
 
@@ -247,7 +259,7 @@ public class KeysetMigrationStrategy extends AbstractMigrationStrategy {
         return keys;
     }
 
-    private void processChunk(int chunkIndex, Map<String, Object> startKey, String[] pkCols, String tableName, MigrationSchema schema, int limit, AtomicInteger totalProcessed) {
+    private void processChunk(int chunkIndex, Map<String, Object> startKey, String[] pkCols, String tableName, MigrationSchema schema, int limit, AtomicInteger totalProcessed, AtomicInteger totalRead) {
         Connection sourceConn = null;
         Connection targetConn = null;
         PreparedStatement sourcePstmt = null;
@@ -308,6 +320,7 @@ public class KeysetMigrationStrategy extends AbstractMigrationStrategy {
             }
             
             if (rowCount > 0) {
+                totalRead.addAndGet(rowCount);
                 executeBatch(targetPstmts);
                 targetConn.commit();
                 totalProcessed.addAndGet(rowCount);

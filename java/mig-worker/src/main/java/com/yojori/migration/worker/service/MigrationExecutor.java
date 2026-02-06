@@ -8,6 +8,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import com.yojori.migration.worker.strategy.ProgressListener;
+
 @Slf4j
 @Service
 public class MigrationExecutor {
@@ -15,7 +17,7 @@ public class MigrationExecutor {
     @Autowired
     private MigrationFactory migrationFactory;
 
-    public void execute(MigrationSchema schema) throws Exception {
+    public void execute(MigrationSchema schema, ProgressListener listener) throws Exception {
         log.info("Starting Migration Execution for Master: {}", schema.getMaster().getMaster_code());
 
         if (schema.getMigList() == null || schema.getMigList().isEmpty()) {
@@ -30,7 +32,7 @@ public class MigrationExecutor {
             MigrationStrategy strategy = migrationFactory.getStrategy(migType);
 
             if (strategy != null) {
-                strategy.execute(schema, task);
+                strategy.execute(schema, task, listener);
             } else {
                 throw new UnsupportedOperationException("No strategy found for type: " + migType);
             }

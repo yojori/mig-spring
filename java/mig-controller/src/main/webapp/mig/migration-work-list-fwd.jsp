@@ -85,6 +85,7 @@
                             <th class="text-center">상태</th>
                             <th class="text-center">시작 시간</th>
                             <th class="text-center">종료 시간</th>
+                            <th class="text-center">반영 건수</th>
                             <th class="text-center">결과 메시지</th>
                             <th class="text-center">등록일</th>
                         </tr>
@@ -109,12 +110,16 @@
                                         <c:otherwise><span class="badge bg-light text-dark border status-badge">${list.status}</span></c:otherwise>
                                     </c:choose>
                                 </td>
-                                <td class="text-center small"><fmt:formatDate value="${list.start_date}" pattern="yyyy-MM-dd HH:mm:ss"/></td>
+                                <td class="text-center small"><fmt:formatDate value="${list.start_date}" pattern="MM-dd HH:mm:ss"/></td>
                                 <td class="text-center small">
-                                    <fmt:formatDate value="${list.end_date}" pattern="yyyy-MM-dd HH:mm:ss"/>
+                                    <fmt:formatDate value="${list.end_date}" pattern="MM-dd HH:mm:ss"/>
                                     <c:if test="${list.status eq 'DONE'}">
                                         <div class="text-secondary" style="font-size: 0.85em;">${list.durationStr}</div>
                                     </c:if>
+                                </td>
+                                <td class="text-center small">
+                                    <div class="text-secondary" title="Read Count">R: <fmt:formatNumber value="${list.read_count}" pattern="#,###"/></div>
+                                    <div class="text-primary fw-bold" title="Processed Count">P: <fmt:formatNumber value="${list.proc_count}" pattern="#,###"/></div>
                                 </td>
                                 <td class="text-center small text-truncate" style="max-width: 200px;" title="${list.result_msg}">
                                     ${list.result_msg}
@@ -123,7 +128,7 @@
                             </tr>
                         </c:forEach>
                         <c:if test="${empty list}">
-                             <tr><td colspan="8" class="text-center py-4 text-muted">등록된 작업 내역이 없습니다.</td></tr>
+                             <tr><td colspan="9" class="text-center py-4 text-muted">등록된 작업 내역이 없습니다.</td></tr>
                         </c:if>
                     </tbody>
                 </table>

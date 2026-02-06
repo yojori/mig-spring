@@ -13,6 +13,7 @@ com\yojori\migration\worker\strategy\impl\ThreadMultiMigrationStrategy.class
 com\yojori\db\query\Update.class
 com\yojori\migration\worker\strategy\impl\ThreadMigrationStrategy.class
 com\yojori\db\query\Insert.class
+com\yojori\migration\worker\strategy\impl\ThreadMigrationStrategy$1.class
 com\yojori\migration\worker\config\WorkerConfig.class
 com\yojori\util\Config.class
 com\yojori\migration\worker\MigrationWorkerApplication.class
@@ -22,6 +23,7 @@ com\yojori\migration\worker\strategy\impl\NormalMigrationStrategy.class
 com\yojori\migration\worker\strategy\MigrationStrategy.class
 com\yojori\migration\worker\client\WorkerClient.class
 com\yojori\migration\worker\service\WorkerService.class
+com\yojori\migration\worker\strategy\impl\KeysetMigrationStrategy$1.class
 com\yojori\migration\worker\model\DBConnMaster.class
 com\yojori\migration\worker\model\MigrationMaster.class
 com\yojori\migration\worker\model\Search.class
@@ -31,7 +33,9 @@ com\yojori\migration\worker\service\PagingQueryBuilder.class
 com\yojori\migration\worker\strategy\MigrationFactory.class
 com\yojori\migration\worker\model\MigrationList.class
 com\yojori\util\StringUtil.class
+com\yojori\migration\worker\strategy\ProgressListener.class
 com\yojori\migration\worker\model\WorkerStatus.class
+com\yojori\migration\worker\strategy\impl\RownumMigrationStrategy$1.class
 com\yojori\migration\worker\service\MigrationExecutor.class
 com\yojori\migration\worker\strategy\impl\JavaMigrationStrategy.class
 com\yojori\migration\worker\model\InsertTable.class

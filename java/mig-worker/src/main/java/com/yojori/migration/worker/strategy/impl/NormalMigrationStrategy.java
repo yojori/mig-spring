@@ -16,6 +16,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import com.yojori.migration.worker.strategy.ProgressListener;
 
 @Component("NORMAL")
 public class NormalMigrationStrategy extends AbstractMigrationStrategy {
@@ -24,7 +25,7 @@ public class NormalMigrationStrategy extends AbstractMigrationStrategy {
     private PagingQueryBuilder pagingQueryBuilder;
 
     @Override
-    public void execute(MigrationSchema schema, MigrationList workList) throws Exception {
+    public void execute(MigrationSchema schema, MigrationList workList, ProgressListener listener) throws Exception {
         logStart(workList.getMig_name());
         log.info("Starting Migration [Streaming Mode V1]");
 
@@ -113,8 +114,10 @@ public class NormalMigrationStrategy extends AbstractMigrationStrategy {
             int rowCount = 0;
             int batchSize = 1000; 
             int totalInserted = 0;
+            long totalRead = 0;
 
             while (sourceRs.next()) {
+                totalRead++;
                 // Map row data
                 Map<String, Object> row = new HashMap<>();
                 for (int i = 1; i <= colCount; i++) {
@@ -133,10 +136,12 @@ public class NormalMigrationStrategy extends AbstractMigrationStrategy {
 
                 // Execute Batch
                 if (rowCount % batchSize == 0) {
+                    if (listener != null) listener.onProgress(totalRead, totalInserted);
                     executeBatch(targetPstmts);
                     targetConn.commit();
                     totalInserted += rowCount; // Simplified count tracking
                     log.info("Processed {} rows...", totalInserted);
+                    if (listener != null) listener.onProgress(totalRead, totalInserted);
                     rowCount = 0; // Reset checking counter, though logical total increases
                     // Actually let's keep totalInserted accurate
                      // Reset batch counter
@@ -151,6 +156,7 @@ public class NormalMigrationStrategy extends AbstractMigrationStrategy {
             }
 
             log.info("Total Processed Rows: {}", totalInserted);
+            if (listener != null) listener.onProgress(totalRead, totalInserted);
 
         } catch (Exception e) {
             log.error("Migration failed", e);

@@ -89,6 +89,8 @@ public class WorkListManager extends Manager {
                     entity.setStart_date(rs.getTimestamp("start_date"));
                     entity.setEnd_date(rs.getTimestamp("end_date"));
                     entity.setResult_msg(rs.getString("result_msg"));
+                    entity.setRead_count(rs.getLong("read_count"));
+                    entity.setProc_count(rs.getLong("proc_count"));
                     entity.setCreate_date(rs.getTimestamp("create_date"));
                     entity.setParam_string(rs.getString("param_string"));
                     
@@ -131,6 +133,8 @@ public class WorkListManager extends Manager {
                 entity.setStart_date(rs.getTimestamp("start_date"));
                 entity.setEnd_date(rs.getTimestamp("end_date"));
                 entity.setResult_msg(rs.getString("result_msg"));
+                entity.setRead_count(rs.getLong("read_count"));
+                entity.setProc_count(rs.getLong("proc_count"));
                 entity.setCreate_date(rs.getTimestamp("create_date"));
                 entity.setParam_string(rs.getString("param_string"));
             }
@@ -184,6 +188,8 @@ public class WorkListManager extends Manager {
             if (table.getStart_date() != null) sql.addField("start_date", table.getStart_date());
             if (table.getEnd_date() != null) sql.addField("end_date", table.getEnd_date());
             if (table.getResult_msg() != null) sql.addField("result_msg", table.getResult_msg());
+            if (table.getRead_count() >= 0) sql.addField("read_count", table.getRead_count());
+            if (table.getProc_count() >= 0) sql.addField("proc_count", table.getProc_count());
             // param_string is usually set at insert, but no harm allowing update if needed (omitting for now)
 
             sql.addFrom(WORK_LIST);

@@ -15,7 +15,7 @@ public abstract class AbstractMigrationStrategy implements MigrationStrategy {
     protected DynamicDataSource dynamicDataSource; // To connect to Source/Target
 
     @Override
-    public abstract void execute(MigrationSchema schema, MigrationList workList) throws Exception;
+    public abstract void execute(MigrationSchema schema, MigrationList workList, ProgressListener listener) throws Exception;
 
     // Common methods can be added here, e.g., tableTruncate, logging helper.
     protected void logStart(String migName) {

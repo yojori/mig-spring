@@ -133,6 +133,8 @@ public class TaskServiceImpl implements TaskService {
         }
         
         work.setResult_msg(status.getMessage());
+        work.setRead_count(status.getReadCount());
+        work.setProc_count(status.getProcessedCount());
         workManager.updateStatus(work);
     }
 

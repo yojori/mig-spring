@@ -15,12 +15,13 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import com.yojori.migration.worker.strategy.ProgressListener;
 
 @Component("THREAD_IDX_LEGACY")
 public class ThreadIdxMigrationStrategy extends AbstractMigrationStrategy {
 
     @Override
-    public void execute(MigrationSchema schema, MigrationList workList) throws Exception {
+    public void execute(MigrationSchema schema, MigrationList workList, ProgressListener listener) throws Exception {
         logStart(workList.getMig_name());
 
         // 1. 유효성 검사 및 테이블 정보 획득

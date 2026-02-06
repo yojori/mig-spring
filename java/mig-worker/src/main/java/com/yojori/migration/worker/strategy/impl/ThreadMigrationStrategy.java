@@ -14,6 +14,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
+import com.yojori.migration.worker.strategy.ProgressListener;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -25,7 +26,7 @@ public class ThreadMigrationStrategy extends AbstractMigrationStrategy {
     private PagingQueryBuilder pagingQueryBuilder;
 
     @Override
-    public void execute(MigrationSchema schema, MigrationList workList) throws Exception {
+    public void execute(MigrationSchema schema, MigrationList workList, ProgressListener listener) throws Exception {
         logStart(workList.getMig_name());
         
         final int threadCount = (workList.getThread_count() <= 0) ? 1 : workList.getThread_count();
@@ -35,7 +36,15 @@ public class ThreadMigrationStrategy extends AbstractMigrationStrategy {
 
         ExecutorService executor = Executors.newFixedThreadPool(threadCount);
         AtomicInteger totalProcessed = new AtomicInteger(0);
-        
+        AtomicInteger totalRead = new AtomicInteger(0);
+        java.util.Timer progressTimer = new java.util.Timer(true);
+        progressTimer.scheduleAtFixedRate(new java.util.TimerTask() {
+            @Override
+            public void run() {
+                if (listener != null) listener.onProgress(totalRead.get(), totalProcessed.get());
+            }
+        }, 1000, 3000);
+
         try {
             // Truncate if needed (Single threaded before workers start)
             prepareTargetTable(schema);
@@ -44,7 +53,7 @@ public class ThreadMigrationStrategy extends AbstractMigrationStrategy {
                 final int threadNum = i;
                 executor.submit(() -> {
                     try {
-                        processThread(threadNum, threadCount, pageSize, schema, workList, totalProcessed);
+                        processThread(threadNum, threadCount, pageSize, schema, workList, totalProcessed, totalRead);
                     } catch (Exception e) {
                         log.error("Thread " + threadNum + " failed", e);
                     }
@@ -61,9 +70,12 @@ public class ThreadMigrationStrategy extends AbstractMigrationStrategy {
             log.error("Migration execution failed", e);
             executor.shutdownNow();
             throw e;
+        } finally {
+            if (progressTimer != null) progressTimer.cancel();
         }
 
         log.info("Total Processed Rows across all threads: {}", totalProcessed.get());
+        if (listener != null) listener.onProgress(totalRead.get(), totalProcessed.get());
         logEnd(workList.getMig_name(), System.currentTimeMillis());
     }
     
@@ -94,7 +106,7 @@ public class ThreadMigrationStrategy extends AbstractMigrationStrategy {
         }
     }
 
-    private void processThread(int threadNum, int threadCount, int pageSize, MigrationSchema schema, MigrationList workList, AtomicInteger totalProcessed) {
+    private void processThread(int threadNum, int threadCount, int pageSize, MigrationSchema schema, MigrationList workList, AtomicInteger totalProcessed, AtomicInteger totalRead) {
         Connection sourceConn = null;
         Connection targetConn = null;
         PreparedStatement sourcePstmt = null;
@@ -191,6 +203,8 @@ public class ThreadMigrationStrategy extends AbstractMigrationStrategy {
                 if (rowCount == 0) {
                     break; // No more data
                 }
+
+                totalRead.addAndGet(rowCount);
 
                 // Execute Batch
                 executeBatch(targetPstmts);
