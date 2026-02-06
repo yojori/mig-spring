@@ -38,7 +38,24 @@ public abstract class AbstractMigrationStrategy implements MigrationStrategy {
             insert.addFrom(iSql.getInsert_table());
             for (com.yojori.migration.worker.model.InsertColumn col : columns) {
                 if (col.getInsert_sql_seq().equals(iSql.getInsert_sql_seq())) {
-                    insert.addField(col.getColumn_name(), "?");
+                    if ("SQL_FUNC".equals(col.getInsert_data())) {
+                        String funcStr = col.getInsert_value();
+                        if (funcStr == null) funcStr = "";
+                        // Parse {COL} pattern
+                        java.util.regex.Pattern p = java.util.regex.Pattern.compile("\\{([^}]+)\\}");
+                        java.util.regex.Matcher m = p.matcher(funcStr);
+                        java.util.List<String> bindCols = new java.util.ArrayList<>();
+                        StringBuffer sb = new StringBuffer();
+                        while (m.find()) {
+                            bindCols.add(m.group(1));
+                            m.appendReplacement(sb, "?");
+                        }
+                        m.appendTail(sb);
+                        col.setSqlFuncBindCols(bindCols);
+                        insert.addField(col.getColumn_name(), sb.toString());
+                    } else {
+                        insert.addField(col.getColumn_name(), "?");
+                    }
                 }
             }
             return insert.toQuery();
@@ -50,7 +67,24 @@ public abstract class AbstractMigrationStrategy implements MigrationStrategy {
                     if (col.getColumn_name().equalsIgnoreCase(iSql.getPk_column())) {
                         update.addWhere(col.getColumn_name() + " = ", "?");
                     } else {
-                        update.addField(col.getColumn_name(), "?");
+                        if ("SQL_FUNC".equals(col.getInsert_data())) {
+                             String funcStr = col.getInsert_value();
+                             if (funcStr == null) funcStr = "";
+                             // Parse {COL} pattern
+                             java.util.regex.Pattern p = java.util.regex.Pattern.compile("\\{([^}]+)\\}");
+                             java.util.regex.Matcher m = p.matcher(funcStr);
+                             java.util.List<String> bindCols = new java.util.ArrayList<>();
+                             StringBuffer sb = new StringBuffer();
+                             while (m.find()) {
+                                 bindCols.add(m.group(1));
+                                 m.appendReplacement(sb, "?");
+                             }
+                             m.appendTail(sb);
+                             col.setSqlFuncBindCols(bindCols);
+                             update.addField(col.getColumn_name(), sb.toString());
+                        } else {
+                            update.addField(col.getColumn_name(), "?");
+                        }
                     }
                 }
             }
@@ -64,7 +98,15 @@ public abstract class AbstractMigrationStrategy implements MigrationStrategy {
         for (com.yojori.migration.worker.model.InsertColumn col : columns) {
             if (col.getInsert_sql_seq().equals(iSql.getInsert_sql_seq())) {
                 Object val = null;
-                if ("CURRENT_DATE".equals(col.getInsert_data())) {
+                if ("SQL_FUNC".equals(col.getInsert_data())) {
+                    if (col.getSqlFuncBindCols() != null) {
+                        for (String bindCol : col.getSqlFuncBindCols()) {
+                            Object bindVal = row.get(bindCol); 
+                            pstmt.setObject(pIdx++, bindVal);
+                        }
+                    }
+                    continue; // Skip standard binding
+                } else if ("CURRENT_DATE".equals(col.getInsert_data())) {
                     val = new java.sql.Date(System.currentTimeMillis());
                 } else if ("UUID".equals(col.getInsert_data())) {
                     val = com.yojori.util.Config.getUUID();

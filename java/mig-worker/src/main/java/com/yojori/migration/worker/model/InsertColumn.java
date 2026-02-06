@@ -15,4 +15,7 @@ public class InsertColumn extends Search {
     private String insert_value;
     private String insert_type;
     private String insert_table;
+    
+    // Transient field to hold bind columns for SQL_FUNC
+    private transient java.util.List<String> sqlFuncBindCols;
 }

@@ -55,10 +55,15 @@
     column4.setColumn_name("UUID");
     column4.setColumn_type("VARCHAR");
     
+    SelectColumn column5 = new SelectColumn();
+    column5.setColumn_name("SQL_FUNC");
+    column5.setColumn_type("VARCHAR");
+    
     sList.add(column1);
     sList.add(column2);
     sList.add(column3);
     sList.add(column4);
+    sList.add(column5);
     
     request.setAttribute("search", search);
     request.setAttribute("list", list);
