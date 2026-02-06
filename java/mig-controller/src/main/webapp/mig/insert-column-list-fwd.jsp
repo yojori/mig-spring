@@ -126,6 +126,17 @@
                      특히 PK 컬럼은 반드시 마지막 순서로 오도록 매핑해주세요.
                 </div>
             </div>
+            <!-- Tip: SQL_FUNC 사용법 -->
+            <div class="alert alert-info mt-4 d-flex align-items-center" role="alert">
+              <i class="bi bi-info-circle-fill flex-shrink-0 me-2 fs-5"></i>
+              <div>
+                <strong>SQL_FUNC 사용법</strong><br/>
+                - 함수에 컬럼 값을 전달하려면 <code>{컬럼명}</code> 형태로 입력합니다.<br/>
+                - 예시: <code>UPPER({NAME})</code> → 대상 DB에서 <code>NAME</code> 컬럼 값을 대문자로 변환합니다.<br/>
+                - 여러 컬럼을 전달할 경우 <code>{COL1}, {COL2}</code> 와 같이 콤마로 구분합니다.<br/>
+                - 함수 자체는 <code>SQL_FUNC</code> 항목에 입력하고, <code>INSERT</code> 혹은 <code>UPDATE</code> 구문에 자동 반영됩니다.
+              </div>
+            </div>
             
         </form>
     </div>
