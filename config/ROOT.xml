@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<Context reloadable="true" docBase="D:\eclipse_work\KnJ_Admin\WebContent" path="/" workDir="D:\eclipse_work\KnJ_Admin\work">
+  <Resource name="knjMall/mssql" scope="Shareable"
+  type="javax.sql.DataSource" 
+  factory="org.apache.tomcat.dbcp.dbcp.BasicDataSourceFactory"   
+  driverClassName="com.microsoft.sqlserver.jdbc.SQLServerDriver" 
+  username="mall_user" 
+  password="mall_user" 
+  maxWait="600"
+  maxIdle="5" 
+  maxActive="5" 
+  testOnBorrow="true"
+  url="jdbc:sqlserver://211.234.117.77:10004;databaseName=MALL" 
+  /> 
+<!--  url="jdbc:sqlserver://211.234.117.71;databaseName=MALL"-->
+<!--
+  <Resource name="knjMall/mssql" scope="Shareable"
+  type="javax.sql.DataSource" 
+  factory="org.apache.tomcat.dbcp.dbcp.BasicDataSourceFactory"   
+  driverClassName="com.microsoft.jdbc.sqlserver.SQLServerDriver" 
+  username="sa" 
+  password="ahrhkck@admin" 
+  maxWait="600"
+  maxIdle="5" 
+  maxActive="5" 
+  testOnBorrow="true"
+  url="jdbc:microsoft:sqlserver://222.106.178.31:10004;databaseName=MALL" 
+  /> 
+  -->
+</Context>

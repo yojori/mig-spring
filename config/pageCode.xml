@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<pageCode>
+	<code>
+		<code-0001> <!-- 사용여부 -->
+			<option value="Y">사용</option>
+			<option value="N">안함</option>
+		</code-0001>
+        <code-0002> <!-- migration_list.mig_type -->
+            <option value="NORMAL">일반 이관</option>
+            <option value="TABLE">테이블단위 이관</option>
+            <option value="PROC">프로시져 호출</option>
+            <option value="JAVA">Java Method 호출</option>
+        </code-0002>	
+        <code-0003> <!-- migration_master.source_db_type, target_db_type -->
+            <option value="oracle">Oracle</option>
+            <option value="mssql2008">MSsql2008</option>
+            <option value="mssql2012">MSsql2012</option>
+            <option value="mysqsl">Mysql</option>
+            <!-- 
+            <option value="DB2">DB2</option>
+            <option value="SYBASE">Sybase</option>
+             -->
+        </code-0003>    
+        <code-0004><!-- 실행여부 migration_list.execute_yn -->
+            <option value="Y">실행</option>
+            <option value="N">안함</option>
+        </code-0004>    
+        <code-0005><!-- Thread Count -->
+            <!-- 
+            <option value="1">1 개</option>
+            <option value="3">3 개</option>
+            <option value="5">5 개</option>
+             -->
+            <option value="10">10 개</option>
+            <option value="15">15 개</option>
+            <option value="20">20 개</option>
+            <option value="25">25 개</option>
+            <option value="30">30 개</option>
+        </code-0005>      
+        <code-0006><!-- Page Count Per Thread -->
+            <!-- 
+            <option value="1000">1000 개</option>
+            <option value="3000">3000 개</option>
+            <option value="5000">5000 개</option>
+             -->
+            <option value="10000">10000 개</option>
+            <option value="15000">15000 개</option>
+            <option value="20000">20000 개</option>
+            <option value="25000">25000 개</option>
+            <option value="30000">30000 개</option>
+        </code-0006>       
+        <code-0007><!-- Insert Type -->
+            <option value="INSERT">INSERT</option>
+            <option value="UPDATE">UPDATE</option>
+            <option value="DELETE">DELETE</option>
+        </code-0007>               
+	</code>
+</pageCode>
