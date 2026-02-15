@@ -6,7 +6,9 @@ import com.yojori.migration.controller.model.InsertSql;
 import com.yojori.migration.controller.model.InsertColumn;
 import com.yojori.migration.controller.model.MigrationList;
 import com.yojori.util.Config;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -16,8 +18,8 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
-@Slf4j
 public class InsertSqlManager extends Manager {
+    private static final Logger log = LoggerFactory.getLogger(InsertSqlManager.class);
 
     // Simplified CRUD for InsertSql
     public List<InsertSql> getList(InsertSql table, int PAGE_GUBUN) {

@@ -1,22 +1,19 @@
 package com.yojori.migration.worker.service;
 
-import com.yojori.db.query.Select;
-import com.yojori.migration.worker.model.IndexValue;
-import com.yojori.migration.worker.model.Search;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Component;
-
-import java.io.StringReader;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
-import java.sql.Timestamp;
 import java.util.Date;
 import java.util.List;
-import java.util.Map;
 
-@Slf4j
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Component;
+
+import com.yojori.migration.worker.model.Search;
+
 @Component
 public class PagingQueryBuilder {
+    private static final Logger log = LoggerFactory.getLogger(PagingQueryBuilder.class);
 
     public String buildPagingQuery(String sql, String dbType, Search pageConfig) {
         String query = "";

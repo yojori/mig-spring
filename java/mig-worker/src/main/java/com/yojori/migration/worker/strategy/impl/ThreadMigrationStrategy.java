@@ -1,23 +1,31 @@
 package com.yojori.migration.worker.strategy.impl;
 
-import com.yojori.db.query.Select;
-import com.yojori.migration.worker.model.*;
-import com.yojori.migration.worker.service.PagingQueryBuilder;
-import com.yojori.migration.worker.strategy.AbstractMigrationStrategy;
-import com.yojori.util.StringUtil;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
-
-import java.sql.*;
-import java.util.ArrayList;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
+import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
-import com.yojori.migration.worker.strategy.ProgressListener;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
+
+import com.yojori.db.query.Select;
+import com.yojori.migration.worker.model.InsertSql;
+import com.yojori.migration.worker.model.InsertTable;
+import com.yojori.migration.worker.model.MigrationList;
+import com.yojori.migration.worker.model.MigrationSchema;
+import com.yojori.migration.worker.model.Search;
+import com.yojori.migration.worker.service.PagingQueryBuilder;
+import com.yojori.migration.worker.strategy.AbstractMigrationStrategy;
+import com.yojori.migration.worker.strategy.ProgressListener;
+import com.yojori.util.StringUtil;
 
 @Component("THREAD")
 public class ThreadMigrationStrategy extends AbstractMigrationStrategy {
@@ -86,7 +94,7 @@ public class ThreadMigrationStrategy extends AbstractMigrationStrategy {
              List<InsertTable> tables = schema.getInsertTableList();
              if (tables != null && !tables.isEmpty()) {
                  for (InsertTable t : tables) {
-                     if ("Y".equalsIgnoreCase(t.getTruncate_yn())) {
+                     if ("Y".equalsIgnoreCase(StringUtil.nvl(t.getTruncate_yn()))) {
                          log.info("Truncating Table: {}", t.getTarget_table());
                          executeTruncate(targetConn, t.getTarget_table());
                      }
@@ -94,12 +102,20 @@ public class ThreadMigrationStrategy extends AbstractMigrationStrategy {
              } else {
                  if (schema.getInsertSqlList() != null) {
                      for (InsertSql s : schema.getInsertSqlList()) {
-                        if ("Y".equalsIgnoreCase(s.getTruncate_yn())) {
+                        if ("Y".equalsIgnoreCase(StringUtil.nvl(s.getTruncate_yn()))) {
                              log.info("Truncating Table: {}", s.getInsert_table());
                              executeTruncate(targetConn, s.getInsert_table());
                         }
                      }
                  }
+             }
+             // Explicitly commit
+             if (!targetConn.getAutoCommit()) {
+                 targetConn.commit();
+             } else {
+                 // Even if auto-commit is true, some drivers might need a nudge or we leave it.
+                 // But if we want to be sure execution happened.
+                 // Actually, if auto-commit is true, executeUpdate commits.
              }
         } finally {
             closeResources(null, null, targetConn);

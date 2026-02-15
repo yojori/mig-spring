@@ -1,22 +1,26 @@
 package com.yojori.migration.worker.strategy.impl;
 
-import com.yojori.db.query.Insert;
-import com.yojori.db.query.Select;
-import com.yojori.db.query.Update;
-import com.yojori.migration.worker.model.*;
-import com.yojori.migration.worker.service.PagingQueryBuilder;
-import com.yojori.migration.worker.strategy.AbstractMigrationStrategy;
-import com.yojori.util.Config;
-import com.yojori.util.StringUtil;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
-
-import java.sql.*;
-import java.util.ArrayList;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
+import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
+
+import com.yojori.db.query.Select;
+import com.yojori.migration.worker.model.InsertSql;
+import com.yojori.migration.worker.model.InsertTable;
+import com.yojori.migration.worker.model.MigrationList;
+import com.yojori.migration.worker.model.MigrationSchema;
+import com.yojori.migration.worker.service.PagingQueryBuilder;
+import com.yojori.migration.worker.strategy.AbstractMigrationStrategy;
 import com.yojori.migration.worker.strategy.ProgressListener;
+import com.yojori.util.StringUtil;
 
 @Component("NORMAL")
 public class NormalMigrationStrategy extends AbstractMigrationStrategy {
@@ -83,21 +87,35 @@ public class NormalMigrationStrategy extends AbstractMigrationStrategy {
             }
             
             // Truncate Logic
+            // Truncate Logic
             if (tables != null && !tables.isEmpty()) {
+                 log.info("Checking Truncate for Tables: {}", tables.size());
                  for (InsertTable t : tables) {
-                     if ("Y".equalsIgnoreCase(t.getTruncate_yn())) {
+                     String truncYn = StringUtil.nvl(t.getTruncate_yn());
+                     log.info("Table: {}, TruncateYN: [{}] (Raw: {})", t.getTarget_table(), truncYn, t.getTruncate_yn());
+                     if ("Y".equalsIgnoreCase(truncYn)) {
                          log.info("Truncating Table: {}", t.getTarget_table());
                          executeTruncate(targetConn, t.getTarget_table());
                      }
                  }
             } else {
+                log.info("Checking Truncate for SQLs: {}", (sqlList != null ? sqlList.size() : 0));
                 // SQL String Mode uses InsertSql configuration
-                for (InsertSql s : sqlList) {
-                    if ("Y".equalsIgnoreCase(s.getTruncate_yn())) {
-                        log.info("Truncating Table: {}", s.getInsert_table());
-                        executeTruncate(targetConn, s.getInsert_table());
+                if (sqlList != null) {
+                    for (InsertSql s : sqlList) {
+                        log.info("SQL Table: {}, TruncateYN: [{}]", s.getInsert_table(), s.getTruncate_yn());
+                        if ("Y".equalsIgnoreCase(StringUtil.nvl(s.getTruncate_yn()))) {
+                            log.info("Truncating Table: {}", s.getInsert_table());
+                            executeTruncate(targetConn, s.getInsert_table());
+                        }
                     }
                 }
+            }
+            
+            // Explicitly commit Truncate (DDL might be transactional)
+            if (tables != null && !tables.isEmpty() || (sqlList != null && !sqlList.isEmpty())) {
+                 log.info("Committing Truncate transaction...");
+                 targetConn.commit();
             }
 
             targetPstmts = new PreparedStatement[sqlList.size()];

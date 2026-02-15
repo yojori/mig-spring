@@ -1,18 +1,19 @@
 package com.yojori.migration.worker.service;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
 import com.yojori.migration.worker.model.MigrationList;
 import com.yojori.migration.worker.model.MigrationSchema;
 import com.yojori.migration.worker.strategy.MigrationFactory;
 import com.yojori.migration.worker.strategy.MigrationStrategy;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
-
 import com.yojori.migration.worker.strategy.ProgressListener;
 
-@Slf4j
 @Service
 public class MigrationExecutor {
+    private static final Logger log = LoggerFactory.getLogger(MigrationExecutor.class);
 
     @Autowired
     private MigrationFactory migrationFactory;

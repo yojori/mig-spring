@@ -6,7 +6,9 @@ import com.yojori.migration.controller.model.DBConnMaster;
 import com.yojori.migration.controller.model.MigrationList;
 import com.yojori.migration.controller.model.MigrationSchema;
 import com.yojori.util.StringUtil;
-import lombok.extern.slf4j.Slf4j;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import java.sql.Connection;
@@ -16,11 +18,12 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
-@Slf4j
 @Component
 public class DBConnMasterManager extends Manager {
 
-    private void setListQuery(DBConnMaster master) {
+    private static final Logger log = LoggerFactory.getLogger(DBConnMasterManager.class);
+
+    private void buildListQuery(DBConnMaster master) {
         Select sql = new Select();
         sql.addField("master_code");
         sql.addField("character_set");
@@ -36,7 +39,7 @@ public class DBConnMasterManager extends Manager {
         setListQuery(sql);
     }
 
-    private void setCountQuery(DBConnMaster master) {
+    private void buildCountQuery(DBConnMaster master) {
         Select sql = new Select();
         sql.addField("COUNT(master_code)");
         sql.addFrom(DB_MASTER);
@@ -53,8 +56,8 @@ public class DBConnMasterManager extends Manager {
             con = DBManager.getConnection();
             setForm(master);
             setPageGubun(PAGE_GUBUN);
-            setCountQuery(master);
-            setListQuery(master);
+            buildCountQuery(master);
+            buildListQuery(master);
 
             if (getPageGubun() == InterfaceManager.PAGE) {
                 stmt = con.prepareStatement(getCountQuery().toQuery());

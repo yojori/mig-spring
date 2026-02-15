@@ -1,10 +1,11 @@
 package com.yojori.db.query;
 
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 
-@Slf4j
 public class Select extends Query {
+    private static final Logger log = LoggerFactory.getLogger(Select.class);
 
     public StringBuilder getSelectClause() {
         StringBuilder sql = new StringBuilder();

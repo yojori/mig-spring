@@ -1,11 +1,9 @@
 package com.yojori.migration.controller.model;
 
-import lombok.Data;
-import lombok.EqualsAndHashCode;
+
+
 import java.util.Date;
 
-@Data
-@EqualsAndHashCode(callSuper = false)
 public class WorkList extends Search {
     private String work_seq;
     private String mig_list_seq;
@@ -41,4 +39,44 @@ public class WorkList extends Search {
         long s = seconds % 60;
         return String.format("(%02d:%02d:%02d)", h, m, s);
     }
+
+    public String getWork_seq() { return work_seq; }
+    public void setWork_seq(String work_seq) { this.work_seq = work_seq; }
+
+    public String getMig_list_seq() { return mig_list_seq; }
+    public void setMig_list_seq(String mig_list_seq) { this.mig_list_seq = mig_list_seq; }
+
+    public String getWorker_id() { return worker_id; }
+    public void setWorker_id(String worker_id) { this.worker_id = worker_id; }
+
+    public String getStatus() { return status; }
+    public void setStatus(String status) { this.status = status; }
+
+    public Date getStart_date() { return start_date; }
+    public void setStart_date(Date start_date) { this.start_date = start_date; }
+
+    public Date getEnd_date() { return end_date; }
+    public void setEnd_date(Date end_date) { this.end_date = end_date; }
+
+    public String getResult_msg() { return result_msg; }
+    public void setResult_msg(String result_msg) { this.result_msg = result_msg; }
+
+    public long getRead_count() { return read_count; }
+    public void setRead_count(long read_count) { this.read_count = read_count; }
+
+    public long getProc_count() { return proc_count; }
+    public void setProc_count(long proc_count) { this.proc_count = proc_count; }
+
+    public Date getCreate_date() { return create_date; }
+    public void setCreate_date(Date create_date) { this.create_date = create_date; }
+
+    public String getMig_name() { return mig_name; }
+    public void setMig_name(String mig_name) { this.mig_name = mig_name; }
+
+    private String orderBy;
+    public String getOrderBy() { return orderBy; }
+    public void setOrderBy(String orderBy) { this.orderBy = orderBy; }
+
+    public String getParam_string() { return param_string; }
+    public void setParam_string(String param_string) { this.param_string = param_string; }
 }

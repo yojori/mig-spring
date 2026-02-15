@@ -7,11 +7,12 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
 
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-@Slf4j
 @Component
 public class WorkerClient {
+    private static final Logger log = LoggerFactory.getLogger(WorkerClient.class);
 
     @Autowired
     private RestTemplate restTemplate;

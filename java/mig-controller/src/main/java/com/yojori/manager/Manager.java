@@ -1,18 +1,17 @@
 package com.yojori.manager;
 
-import com.yojori.db.query.*;
-import com.yojori.migration.controller.model.Search;
-import com.yojori.util.Config;
-import lombok.extern.slf4j.Slf4j;
-
-import java.io.StringReader;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
-import java.sql.Timestamp;
 import java.util.Date;
 import java.util.List;
 
-@Slf4j
+import com.yojori.db.query.Delete;
+import com.yojori.db.query.Dummy;
+import com.yojori.db.query.Insert;
+import com.yojori.db.query.Select;
+import com.yojori.db.query.Update;
+import com.yojori.migration.controller.model.Search;
+
 public abstract class Manager implements InterfaceManager {
 
     public final String DB_MASTER = "ZXXMIG_DB_MASTER";

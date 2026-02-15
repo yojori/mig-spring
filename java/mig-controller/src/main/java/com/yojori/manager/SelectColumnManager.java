@@ -9,8 +9,8 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.yojori.db.DBManager;
 import com.yojori.db.query.Insert;
@@ -23,9 +23,9 @@ import com.yojori.util.Config;
 // Restored from legacy
 public class SelectColumnManager extends Manager {
 
-	private static final Log log = LogFactory.getLog(SelectColumnManager.class);
+	private static final Logger log = LoggerFactory.getLogger(SelectColumnManager.class);
 	
-	private void setCountQuery(SelectColumn select) {
+	private void buildCountQuery(SelectColumn select) {
 		
 		Select sql = new Select();
 
@@ -35,7 +35,7 @@ public class SelectColumnManager extends Manager {
 		setCountQuery(sql);
 	}
 	
-	private void setListQuery(SelectColumn select) {
+	private void buildListQuery(SelectColumn select) {
 		
 		Select sql = new Select();
 		
@@ -73,8 +73,8 @@ public class SelectColumnManager extends Manager {
 			
 			setForm(select);
 			setPageGubun(PAGE_GUBUN);
-			setCountQuery(select);
-			setListQuery(select);
+			buildCountQuery(select);
+			buildListQuery(select);
 			
 			if(getPageGubun() == InterfaceManager.PAGE)
 			{

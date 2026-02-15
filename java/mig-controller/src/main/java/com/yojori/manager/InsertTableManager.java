@@ -3,7 +3,8 @@ package com.yojori.manager;
 import com.yojori.db.DBManager;
 import com.yojori.db.query.*;
 import com.yojori.migration.controller.model.InsertTable;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -12,10 +13,10 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
-@Slf4j
 public class InsertTableManager extends Manager {
+    private static final Logger log = LoggerFactory.getLogger(InsertTableManager.class);
 
-    private void setListQuery(InsertTable table) {
+    private void buildListQuery(InsertTable table) {
         Select sql = new Select();
         sql.addField("insert_table_seq");
         sql.addField("source_table");
@@ -32,7 +33,7 @@ public class InsertTableManager extends Manager {
         setListQuery(sql);
     }
 
-    private void setCountQuery(InsertTable table) {
+    private void buildCountQuery(InsertTable table) {
         Select sql = new Select();
         sql.addField("COUNT(insert_table_seq)");
         sql.addFrom(INSERT_TABLE);
@@ -49,8 +50,8 @@ public class InsertTableManager extends Manager {
             con = DBManager.getConnection();
             setForm(table);
             setPageGubun(PAGE_GUBUN);
-            setCountQuery(table);
-            setListQuery(table);
+            buildCountQuery(table);
+            buildListQuery(table);
 
             if (getPageGubun() == InterfaceManager.PAGE) {
                 stmt = con.prepareStatement(getCountQuery().toQuery());

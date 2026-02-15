@@ -1,26 +1,36 @@
 package com.yojori.migration.controller.service;
 
-import com.yojori.migration.controller.model.*;
-import com.yojori.manager.MigrationListManager;
-import org.springframework.stereotype.Service;
 import java.util.ArrayList;
-import com.yojori.manager.WorkListManager;
 import java.util.Collections;
-import java.util.List; // Added import
-// import java.util.Date; // Removed unused
+import java.util.List;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Service;
 
-import lombok.extern.slf4j.Slf4j;
+import com.yojori.manager.MigrationListManager; // Added import
+import com.yojori.manager.WorkListManager;
+import com.yojori.migration.controller.model.DBConnMaster;
+import com.yojori.migration.controller.model.InsertColumn;
+import com.yojori.migration.controller.model.InsertSql;
+import com.yojori.migration.controller.model.InsertTable;
+import com.yojori.migration.controller.model.MigrationList;
+import com.yojori.migration.controller.model.MigrationMaster;
+import com.yojori.migration.controller.model.MigrationSchema;
+import com.yojori.migration.controller.model.WorkList;
+import com.yojori.migration.controller.model.WorkerStatus;
 
-@Slf4j
 @Service
 public class TaskServiceImpl implements TaskService {
+
+    private static final Logger log = LoggerFactory.getLogger(TaskServiceImpl.class);
 
     @Override
     public String allocateTask(String workerId) {
         WorkListManager workManager = new WorkListManager();
         WorkList search = new WorkList();
         search.setStatus(WorkList.STATUS_READY);
+        search.setOrderBy("A.work_seq ASC"); // FIFO: Process oldest task first
         
         // Simple polling: Get list of READY tasks and pick first one
         // Ideally we should use a "findAndLock" or atomic update, but for now:
@@ -150,7 +160,7 @@ public class TaskServiceImpl implements TaskService {
              String workSeq = com.yojori.util.Config.getOrdNoSequence("WL");
              
              WorkList work = new WorkList();
-             work.setWork_seq(workSeq);
+             // work.setWork_seq(workSeq); // Handled by DB
              work.setMig_list_seq(childTask.getMig_list_seq()); // Reuse Parent ID
              work.setStatus(WorkList.STATUS_READY);
              work.setCreate_date(new java.util.Date());

@@ -1,24 +1,24 @@
 package com.yojori.migration.worker.service;
 
-import com.yojori.migration.worker.client.WorkerClient;
-import com.yojori.migration.worker.model.MigrationSchema;
-import com.yojori.migration.worker.model.WorkerStatus;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.CommandLineRunner;
-import org.springframework.stereotype.Service;
-
 import java.util.UUID;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.InitializingBean;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.CommandLineRunner;
+import org.springframework.stereotype.Service;
 
-import lombok.extern.slf4j.Slf4j;
+import com.yojori.migration.worker.client.WorkerClient;
+import com.yojori.migration.worker.model.MigrationSchema;
+import com.yojori.migration.worker.model.WorkerStatus;
 
-@Slf4j
 @Service
 public class WorkerService implements CommandLineRunner, InitializingBean {
+    private static final Logger log = LoggerFactory.getLogger(WorkerService.class);
 
     @Autowired
     private WorkerClient workerClient;

@@ -1,9 +1,5 @@
 package com.yojori.manager;
 
-import com.yojori.db.DBManager;
-import com.yojori.db.query.*;
-import com.yojori.migration.controller.model.WorkList;
-import lombok.extern.slf4j.Slf4j;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -11,10 +7,20 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
-@Slf4j
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.yojori.db.DBManager;
+import com.yojori.db.query.Insert;
+import com.yojori.db.query.Select;
+import com.yojori.db.query.Update;
+import com.yojori.migration.controller.model.WorkList;
+
 public class WorkListManager extends Manager {
 
-    private void setListQuery(WorkList table) {
+    private static final Logger log = LoggerFactory.getLogger(WorkListManager.class);
+
+    private void buildListQuery(WorkList table) {
         Select sql = new Select();
         sql.addField("A.*");
         sql.addField("B.mig_name");
@@ -28,11 +34,15 @@ public class WorkListManager extends Manager {
         if (table.getStatus() != null && !table.getStatus().isEmpty()) {
             sql.addWhere("A.status = ?", table.getStatus());
         }
-        sql.addOrder("A.create_date DESC");
+        if (table.getOrderBy() != null && !table.getOrderBy().isEmpty()) {
+            sql.addOrder(table.getOrderBy());
+        } else {
+            sql.addOrder("A.work_seq DESC");
+        }
         setListQuery(sql);
     }
 
-    private void setCountQuery(WorkList table) {
+    private void buildCountQuery(WorkList table) {
         Select sql = new Select();
         sql.addField("COUNT(A.work_seq)");
         sql.addFrom(WORK_LIST + " A");
@@ -57,8 +67,8 @@ public class WorkListManager extends Manager {
             con = DBManager.getConnection();
             setForm(table);
             setPageGubun(PAGE_GUBUN);
-            setCountQuery(table);
-            setListQuery(table);
+            buildCountQuery(table);
+            buildListQuery(table);
 
             if (getPageGubun() == InterfaceManager.PAGE) {
                 stmt = con.prepareStatement(getCountQuery().toQuery());
@@ -152,7 +162,7 @@ public class WorkListManager extends Manager {
         PreparedStatement stmt = null;
         try {
             Insert sql = new Insert();
-            sql.addField("work_seq", table.getWork_seq());
+            // sql.addField("work_seq", table.getWork_seq()); // handled by DB auto-increment
             sql.addField("mig_list_seq", table.getMig_list_seq());
             sql.addField("status", table.getStatus());
             sql.addField("create_date", table.getCreate_date());

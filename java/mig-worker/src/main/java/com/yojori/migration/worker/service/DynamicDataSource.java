@@ -1,15 +1,17 @@
 package com.yojori.migration.worker.service;
 
-import com.yojori.migration.worker.model.DBConnMaster;
-import com.zaxxer.hikari.HikariConfig;
-import com.zaxxer.hikari.HikariDataSource;
-import org.springframework.stereotype.Component;
-
-import jakarta.annotation.PreDestroy;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+
+import org.springframework.stereotype.Component;
+
+import com.yojori.migration.worker.model.DBConnMaster;
+import com.zaxxer.hikari.HikariConfig;
+import com.zaxxer.hikari.HikariDataSource;
+
+import jakarta.annotation.PreDestroy;
 
 @Component
 public class DynamicDataSource {
@@ -65,6 +67,7 @@ public class DynamicDataSource {
              try {
                  if (db.getJdbcUrl() != null) {
                      String cacheKey = db.getJdbcUrl() + "|" + db.getUsername();
+                     org.slf4j.LoggerFactory.getLogger(DynamicDataSource.class).info("Creating Pool for DB Code: {}, URL: {}", db.getMaster_code(), db.getJdbcUrl());
                      dataSourceCache.computeIfAbsent(cacheKey, k -> createDataSource(db));
                      // log.info("Initialized pool for: " + db.getJdbcUrl());
                  }

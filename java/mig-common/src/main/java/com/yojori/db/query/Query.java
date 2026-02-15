@@ -1,13 +1,9 @@
 package com.yojori.db.query;
 
-import lombok.Getter;
-import lombok.Setter;
-
 import java.util.ArrayList;
 import java.util.List;
 
-@Getter
-@Setter
+
 public abstract class Query implements InterfaceQuery {
 
     private List<String> field = new ArrayList<>();
@@ -18,6 +14,14 @@ public abstract class Query implements InterfaceQuery {
 
     private List<Object> insertField = new ArrayList<>();
     private List<Object> whereField = new ArrayList<>();
+
+    public List<String> getField() { return field; }
+    public List<String> getFrom() { return from; }
+    public List<String> getWhere() { return where; }
+    public List<String> getOrder() { return order; }
+    public List<String> getJoins() { return joins; }
+    public List<Object> getInsertField() { return insertField; }
+    public List<Object> getWhereField() { return whereField; }
 
     public Query() {
     }

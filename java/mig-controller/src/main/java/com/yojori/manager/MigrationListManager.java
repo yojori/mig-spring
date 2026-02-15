@@ -6,7 +6,8 @@ import com.yojori.db.query.Select;
 import com.yojori.db.query.Update;
 import com.yojori.migration.controller.model.MigrationList;
 import com.yojori.util.StringUtil;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -20,13 +21,15 @@ import java.util.Map;
 
 import com.yojori.migration.controller.model.InsertTable;
 
-@Slf4j
 public class MigrationListManager extends Manager {
+
+    private static final Logger log = LoggerFactory.getLogger(MigrationListManager.class);
+
 
     // Removed legacy threading logic (NormalMigration, ThreadTableMigration)
     // Controller only handles CRUD and Task Queueing.
 
-    private void setListQuery(MigrationList master) {
+    private void buildListQuery(MigrationList master) {
 
         Select sql = new Select();
 
@@ -86,7 +89,7 @@ public class MigrationListManager extends Manager {
         return null;
     }
 
-    private void setCountQuery(MigrationList master) {
+    private void buildCountQuery(MigrationList master) {
 
         Select sql = new Select();
 
@@ -143,8 +146,8 @@ public class MigrationListManager extends Manager {
 
             setForm(master);
             setPageGubun(PAGE_GUBUN);
-            setCountQuery(master);
-            setListQuery(master);
+            buildCountQuery(master);
+            buildListQuery(master);
 
             if (getPageGubun() == InterfaceManager.PAGE) {
                 stmt = con.prepareStatement(getCountQuery().toQuery());

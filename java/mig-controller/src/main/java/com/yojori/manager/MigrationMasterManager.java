@@ -4,7 +4,8 @@ import com.yojori.db.DBManager;
 import com.yojori.db.query.*;
 import com.yojori.migration.controller.model.MigrationMaster;
 import com.yojori.util.StringUtil;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -13,10 +14,11 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
-@Slf4j
 public class MigrationMasterManager extends Manager {
 
-    private void setListQuery(MigrationMaster master) {
+    private static final Logger log = LoggerFactory.getLogger(MigrationMasterManager.class);
+
+    private void buildListQuery(MigrationMaster master) {
         Select sql = new Select();
         sql.addField("master_code");
         sql.addField("master_name");
@@ -34,7 +36,7 @@ public class MigrationMasterManager extends Manager {
         setListQuery(sql);
     }
 
-    private void setCountQuery(MigrationMaster master) {
+    private void buildCountQuery(MigrationMaster master) {
         Select sql = new Select();
         sql.addField("COUNT(master_code)");
         sql.addFrom(MIGRATION_MASTER);
@@ -54,8 +56,8 @@ public class MigrationMasterManager extends Manager {
             con = DBManager.getConnection();
             setForm(master);
             setPageGubun(PAGE_GUBUN);
-            setCountQuery(master);
-            setListQuery(master);
+            buildCountQuery(master);
+            buildListQuery(master);
 
             if (getPageGubun() == InterfaceManager.PAGE) {
                 stmt = con.prepareStatement(getCountQuery().toQuery());

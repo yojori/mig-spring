@@ -1,10 +1,11 @@
 package com.yojori.migration.worker.strategy;
 
-import com.yojori.migration.worker.model.MigrationSchema;
-import com.yojori.migration.worker.model.MigrationList;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+
+import com.yojori.migration.worker.model.MigrationList;
+import com.yojori.migration.worker.model.MigrationSchema;
 import com.yojori.migration.worker.service.DynamicDataSource;
 
 public abstract class AbstractMigrationStrategy implements MigrationStrategy {
@@ -122,13 +123,14 @@ public abstract class AbstractMigrationStrategy implements MigrationStrategy {
         }
     }
 
-    protected void executeTruncate(java.sql.Connection conn, String tableName) {
+    protected void executeTruncate(java.sql.Connection conn, String tableName) throws java.sql.SQLException {
         java.sql.Statement stmt = null;
         try {
             stmt = conn.createStatement();
             stmt.executeUpdate("TRUNCATE TABLE " + tableName);
-        } catch (Exception e) {
-            log.warn("Truncate failed for table: " + tableName + " - " + e.getMessage());
+        } catch (java.sql.SQLException e) {
+            log.error("Truncate failed for table: " + tableName, e);
+            throw e;
         } finally {
             closeResources(null, stmt, null);
         }

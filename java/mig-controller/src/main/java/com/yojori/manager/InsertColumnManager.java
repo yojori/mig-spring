@@ -3,7 +3,9 @@ package com.yojori.manager;
 import com.yojori.db.DBManager;
 import com.yojori.db.query.*;
 import com.yojori.migration.controller.model.InsertColumn;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -11,8 +13,8 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
-@Slf4j
 public class InsertColumnManager extends Manager {
+    private static final Logger log = LoggerFactory.getLogger(InsertColumnManager.class);
 
     public List<InsertColumn> getList(InsertColumn table, int PAGE_GUBUN) {
         List<InsertColumn> list = new ArrayList<>();
