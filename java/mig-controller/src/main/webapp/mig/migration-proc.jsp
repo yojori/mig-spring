@@ -12,7 +12,6 @@
                             display_yn=request.getParameterValues("display_yn"); String[]
                             mig_name=request.getParameterValues("mig_name"); List<String> resultMessages = new ArrayList
                             <>();
-
                                 int registeredCount = 0;
 
                                 /* Batch Execution */
@@ -101,7 +100,7 @@
                                             <h4 class="fw-bold mb-3">작업 등록 완료</h4>
                                             <p class="text-muted mb-4">
                                                 총 <span class="fw-bold text-primary">
-                                                    <%=registeredCount%>
+                                                    <%= registeredCount %>
                                                 </span> 건의 이관 작업이 대기열에 등록되었습니다.<br>
                                                 Worker 프로세스가 순차적으로 작업을 처리합니다.
                                             </p>
@@ -113,7 +112,7 @@
                                                     <ul class="list-unstyled mb-0">
                                                         <% for (String msg : resultMessages) { %>
                                                             <li class="mb-1"><i class="bi bi-dot"></i>
-                                                                <%=msg%>
+                                                                <%= msg %>
                                                             </li>
                                                             <% } %>
                                                     </ul>
