@@ -73,9 +73,24 @@
 <table width=100% cellpadding=0 cellspacing=0>
 <tr><td colspan=6 height=3 bgcolor=#979797></td></tr>
 <tr height=34 align=center>
-    <td>source_table</td>
-    <td>source_pk(Order by)</td>
-    <td>target_table</td>
+    <td>
+        <c:choose>
+            <c:when test="${migList.mig_type eq 'JAVA'}">Class Name</c:when>
+            <c:otherwise>source_table</c:otherwise>
+        </c:choose>
+    </td>
+    <td>
+        <c:choose>
+            <c:when test="${migList.mig_type eq 'JAVA'}">Method Name</c:when>
+            <c:otherwise>source_pk(Order by)</c:otherwise>
+        </c:choose>
+    </td>
+    <td>
+        <c:choose>
+            <c:when test="${migList.mig_type eq 'JAVA'}">Description</c:when>
+            <c:otherwise>target_table</c:otherwise>
+        </c:choose>
+    </td>
     <td>Truncate Yn</td>
     <td>삭제</td>
     <td>등록일</td>
@@ -87,9 +102,9 @@
 <c:forEach items="${list}" var="list" >
 <input type="hidden" name="insert_table_seq" value="${list.insert_table_seq}" />
 <tr height=28 align=center> 
-    <td class="date"><input type="text" name="source_table" value="${list.source_table}"></td>
-    <td class="date"><input type="text" name="source_pk" value="${list.source_pk}"></td>
-    <td class="date"><input type="text" name="target_table" value="${list.target_table}"></td>
+    <td class="date"><input type="text" name="source_table" value="${list.source_table}" placeholder="${migList.mig_type eq 'JAVA' ? 'Class Name' : 'Source Table'}"></td>
+    <td class="date"><input type="text" name="source_pk" value="${list.source_pk}" placeholder="${migList.mig_type eq 'JAVA' ? 'Method Name' : 'PK/Order'}"></td>
+    <td class="date"><input type="text" name="target_table" value="${list.target_table}" placeholder="${migList.mig_type eq 'JAVA' ? 'Description' : 'Target Table'}"></td>
     <td class="date"><input type="checkbox" name="truncate_${list.insert_table_seq}" id="truncat_${list.insert_table_seq}" <c:if test="${list.truncate_yn == 'Y'}"> checked</c:if> value="Y" /></td>
     <td class="date"><input type="button" name="btn2" value="삭제" onclick="goDelete('${list.insert_table_seq}');" /></td>
     <td class="date">${list.create_date}</td>
@@ -100,9 +115,9 @@
 <c:forEach begin="1" end="5" var="cnt" >
 <tr height=28 align=center> 
     <input type="hidden" name="insert_table_seq" value="" />
-    <td class="date"><input type="text" name="source_table" value=""></td>
-    <td class="date"><input type="text" name="source_pk" value=""></td>
-    <td class="date"><input type="text" name="target_table" value=""></td>
+    <td class="date"><input type="text" name="source_table" value="" placeholder="${migList.mig_type eq 'JAVA' ? 'Class Name' : 'Source Table'}"></td>
+    <td class="date"><input type="text" name="source_pk" value="" placeholder="${migList.mig_type eq 'JAVA' ? 'Method Name' : 'PK/Order'}"></td>
+    <td class="date"><input type="text" name="target_table" value="" placeholder="${migList.mig_type eq 'JAVA' ? 'Description' : 'Target Table'}"></td>
     <td class="date">&nbsp;</td>
     <td class="date">&nbsp;</td>
     <td class="date">create_date</td>

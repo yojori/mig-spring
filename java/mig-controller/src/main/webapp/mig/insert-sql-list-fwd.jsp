@@ -56,9 +56,38 @@
                 goNext();   
             }
         }    
+        function goSaveAndClose() {
+            document.frm1.mode.value = "insertAll";
+            document.frm1.auto_close.value = "Y";
+            document.frm1.submit();
+        }
+
+        function checkAutoClose() {
+            if('${param.auto_close}' == 'Y') {
+                opener.location.reload();
+                self.close();
+            }
+        }
+
+        function updateStep3Labels() {
+        // Updated logic for Step 3 labels
+        // For TABLE/SQL type: Insert Configuration (Table/Column)
+        // For JAVA type: Partitioning Source (Optional) (Table/PK)
+        var migType = "${mig_type}";
+        if(migType === "JAVA") {
+             $("#step3_title").text("Partitioning Source (Optional)");
+             // Update grid headers if possible, or just the section title
+             // Grid headers are in the i-grid-column, hard to change via JS easily without grid API
+             // But we can add a helper text
+             $("#step3_desc").text("Configure Source Table and PK Column for Thread Partitioning.");
+        } else {
+             $("#step3_title").text("Insert Configuration (Table/Class)");
+             $("#step3_desc").text("Configure Target Table and Column mapping.");
+        }
+    }
     </script>
 </head>
-<body onload="confirmNext();" class="p-3">
+<body onload="confirmNext(); checkAutoClose();" class="p-3">
 
 <div class="container-fluid">
     <div class="card p-4">
@@ -67,7 +96,15 @@
         <div class="d-flex justify-content-between align-items-center mb-4 border-bottom pb-3">
              <div class="d-flex align-items-center gap-2">
                 <span class="badge bg-primary rounded-pill">STEP 3</span>
-                <h4 class="fw-bold mb-0 text-dark">Insert Table 설정</h4>
+                <c:choose>
+                    <c:when test="${migList.mig_type eq 'JAVA'}">
+                        <h4 class="fw-bold mb-0 text-dark">Insert Configuration (Class/Method)</h4>
+                    </c:when>
+                    <c:otherwise>
+                        <h5 class="card-title" id="step3_title">Insert Configuration (Table/Class)</h5>
+    <span id="step3_desc" class="text-muted small"></span>
+                    </c:otherwise>
+                </c:choose>
             </div>
             <button type="button" class="btn btn-close" onclick="self.close();" aria-label="Close"></button>
         </div>
@@ -77,15 +114,25 @@
             <input type="hidden" name="mig_list_seq" value="${search.mig_list_seq}" />
             <input type="hidden" name="auto_insert_sql_seq" value="" />
             <input type="hidden" name="auto_insert_table" value="" />
+            <input type="hidden" name="auto_close" value="" />
 
             <!-- Action Buttons -->
             <div class="d-flex justify-content-end mb-3 gap-2">
                 <button type="button" class="btn btn-warning" onclick="goRegist();">
                     <i class="bi bi-save me-1"></i> 저장 (등록/수정)
                 </button>
-                 <button type="button" class="btn btn-primary fw-bold" onclick="goNext();">
-                    다음 단계 <i class="bi bi-chevron-right ms-1"></i>
-                </button>
+                <c:choose>
+                    <c:when test="${migList.mig_type eq 'JAVA'}">
+                        <button type="button" class="btn btn-primary fw-bold" onclick="goSaveAndClose();">
+                            <i class="bi bi-check-lg me-1"></i> 수정 완료
+                        </button>
+                    </c:when>
+                    <c:otherwise>
+                         <button type="button" class="btn btn-primary fw-bold" onclick="goNext();">
+                            다음 단계 <i class="bi bi-chevron-right ms-1"></i>
+                        </button>
+                    </c:otherwise>
+                </c:choose>
             </div>
 
             <!-- Main Table -->
@@ -94,8 +141,16 @@
                     <thead>
                         <tr>
                             <th width="12%">Insert Type</th>
-                            <th width="20%">Table Name</th>
-                            <th width="15%">PK Column</th>
+                            <c:choose>
+                                <c:when test="${migList.mig_type eq 'JAVA'}">
+                                    <th width="20%">Class.Method</th>
+                                    <th width="15%">Partitioning PK</th>
+                                </c:when>
+                                <c:otherwise>
+                                    <th width="20%">Table Name</th>
+                                    <th width="15%">PK Column</th>
+                                </c:otherwise>
+                            </c:choose>
                             <th width="10%">Truncate</th>
                             <th width="15%">등록일</th>
                             <th width="28%">관리</th>
@@ -107,8 +162,8 @@
                         <input type="hidden" name="insert_sql_seq" value="${list.insert_sql_seq}" />
                         <tr> 
                             <td><jaes:codeselect name="insert_type" id="insert_type" group="pageCode.code.code-0007" selected="${list.insert_type}" /></td>
-                            <td><input type="text" class="form-control form-control-sm" name="insert_table" value="${list.insert_table}" placeholder="Table명" /></td>
-                            <td><input type="text" class="form-control form-control-sm" name="pk_column" value="${list.pk_column}" placeholder="PK컬럼" /></td>
+                            <td><input type="text" class="form-control form-control-sm" name="insert_table" value="${list.insert_table}" placeholder="${migList.mig_type eq 'JAVA' ? 'Class.Method' : 'Table Name'}" /></td>
+                            <td><input type="text" class="form-control form-control-sm" name="pk_column" value="${list.pk_column}" placeholder="${migList.mig_type eq 'JAVA' ? 'Partition Key' : 'PK Column'}" /></td>
                             <td>
                                 <div class="form-check d-flex justify-content-center">
                                     <input type="hidden" name="truncate_yn" value="${list.truncate_yn == 'Y' ? 'Y' : 'N'}">
@@ -118,9 +173,11 @@
                             <td class="small text-muted">${list.create_date}</td>
                             <td>
                                 <div class="btn-group btn-group-sm">
+                                    <c:if test="${migList.mig_type ne 'JAVA'}">
                                     <button type="button" class="btn btn-outline-primary" onclick="goAutocolumn('${list.insert_sql_seq}','${list.insert_table}');">
                                         <i class="bi bi-magic"></i> 컬럼생성
                                     </button>
+                                    </c:if>
                                     <button type="button" class="btn btn-outline-danger" onclick="goDelete('${list.insert_sql_seq}','${list.insert_table}');">
                                         <i class="bi bi-trash"></i> 삭제
                                     </button>
@@ -134,8 +191,8 @@
                         <tr> 
                             <input type="hidden" name="insert_sql_seq" value="" />
                             <td><jaes:codeselect name="insert_type" id="insert_type" group="pageCode.code.code-0007" /></td>
-                            <td><input type="text" class="form-control form-control-sm" name="insert_table" value="" placeholder="Table명" /></td>
-                            <td><input type="text" class="form-control form-control-sm" name="pk_column" value="" placeholder="PK컬럼" /></td>
+                            <td><input type="text" class="form-control form-control-sm" name="insert_table" value="" placeholder="${migList.mig_type eq 'JAVA' ? 'Class.Method' : 'Table Name'}" /></td>
+                            <td><input type="text" class="form-control form-control-sm" name="pk_column" value="" placeholder="${migList.mig_type eq 'JAVA' ? 'Partition Key' : 'PK Column'}" /></td>
                             <td>
                                 <div class="form-check d-flex justify-content-center">
                                     <input type="hidden" name="truncate_yn" value="N">

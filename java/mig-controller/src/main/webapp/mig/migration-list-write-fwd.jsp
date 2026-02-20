@@ -163,15 +163,15 @@
                             </div>
                             <div class="row g-2">
                                 <div class="col-md-4">
-                                     <label class="form-label small fw-bold">Source Tables</label>
+                                     <label class="form-label small fw-bold" id="lbl_source_table">Source Tables</label>
                                      <textarea class="form-control font-monospace" name="source_table_area" rows="8" placeholder="SOURCE_TABLE_A&#10;SOURCE_TABLE_B" style="font-size:0.85rem; background:#fdfdfd;"></textarea>
                                 </div>
                                 <div class="col-md-4">
-                                     <label class="form-label small fw-bold">Source PK (Order By)</label>
+                                     <label class="form-label small fw-bold" id="lbl_source_pk">Source PK (Order By)</label>
                                      <textarea class="form-control font-monospace" name="source_pk_area" rows="8" placeholder="ID&#10;CODE, REG_DT" style="font-size:0.85rem; background:#fdfdfd;"></textarea>
                                 </div>
                                 <div class="col-md-4">
-                                     <label class="form-label small fw-bold">Target Tables</label>
+                                     <label class="form-label small fw-bold" id="lbl_target_table">Target Tables</label>
                                      <textarea class="form-control font-monospace" name="target_table_area" rows="8" placeholder="TARGET_TABLE_A&#10;TARGET_TABLE_B" style="font-size:0.85rem; background:#fdfdfd;"></textarea>
                                 </div>
                                 <div class="col-12 mt-2">
@@ -214,7 +214,7 @@
             
             // 1. Thread Settings Logic
             var threadSection = document.getElementById("thread_settings");
-            if (type.indexOf("THREAD") > -1) { 
+            if (type.indexOf("THREAD") > -1 || type === "JAVA") { 
                 threadSection.style.display = "flex";
             } else {
                 threadSection.style.display = "none";
@@ -227,6 +227,9 @@
             if (type === "TABLE") {
                 sqlSection.style.display = "none";
                 tableSection.style.display = "block";
+            } else if (type === "JAVA") {
+                sqlSection.style.display = "block";
+                tableSection.style.display = "none";
             } else {
                 sqlSection.style.display = "block";
                 tableSection.style.display = "none";
@@ -234,6 +237,8 @@
             
             document.getElementById("step-1").style.display = "none";
             document.getElementById("step-2").style.display = "block";
+            
+            changeType();
         }
 
         function prevStep() {
@@ -242,8 +247,20 @@
         }
         
         function changeType() {
-            // Placeholder: Logic moved to nextStep for wizard flow,
-            // but kept here if immediate feedback is needed in Step 1 (e.g. description)
+             var type = document.getElementById("mig_type").value;
+             var lblSourceTable = document.getElementById("lbl_source_table");
+             var lblSourcePk = document.getElementById("lbl_source_pk");
+             var lblTargetTable = document.getElementById("lbl_target_table");
+
+             if (type === "JAVA") {
+                 if(lblSourceTable) lblSourceTable.innerHTML = "Class Name <small class='text-muted fw-normal'>(패키지 포함 전체 경로)</small>";
+                 if(lblSourcePk) lblSourcePk.innerHTML = "Method Name";
+                 if(lblTargetTable) lblTargetTable.innerHTML = "Description / Target Path";
+             } else {
+                 if(lblSourceTable) lblSourceTable.innerHTML = "Source Tables";
+                 if(lblSourcePk) lblSourcePk.innerHTML = "Source PK (Order By)";
+                 if(lblTargetTable) lblTargetTable.innerHTML = "Target Tables";
+             }
         }
     </script>
 </body>

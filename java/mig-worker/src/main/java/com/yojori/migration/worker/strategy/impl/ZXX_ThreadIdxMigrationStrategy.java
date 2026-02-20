@@ -18,7 +18,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import com.yojori.migration.worker.strategy.ProgressListener;
 
 @Component("THREAD_IDX_LEGACY")
-public class ThreadIdxMigrationStrategy extends AbstractMigrationStrategy {
+public class ZXX_ThreadIdxMigrationStrategy extends AbstractMigrationStrategy {
 
     @Override
     public void execute(MigrationSchema schema, MigrationList workList, ProgressListener listener) throws Exception {

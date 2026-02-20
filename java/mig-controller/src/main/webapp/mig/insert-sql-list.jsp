@@ -71,6 +71,12 @@
     
     request.setAttribute("search", search);
     request.setAttribute("list", list);
+
+    MigrationListManager migManager = new MigrationListManager();
+    MigrationList migList = new MigrationList();
+    migList.setMig_list_seq(search.getMig_list_seq());
+    migList = migManager.find(migList);
+    request.setAttribute("migList", migList);
    
     request.getRequestDispatcher("./insert-sql-list-fwd.jsp").forward(request, response);
 %>

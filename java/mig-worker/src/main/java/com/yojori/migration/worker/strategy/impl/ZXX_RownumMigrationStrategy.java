@@ -17,8 +17,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import com.yojori.migration.worker.strategy.ProgressListener;
 
-@Component("ROWNUM")
-public class RownumMigrationStrategy extends AbstractMigrationStrategy {
+@Component("THREAD_MULTI_ROWNUM") // Deprecated
+public class ZXX_RownumMigrationStrategy extends AbstractMigrationStrategy {
 
     @Override
     public void execute(MigrationSchema schema, MigrationList workList, ProgressListener listener) throws Exception {

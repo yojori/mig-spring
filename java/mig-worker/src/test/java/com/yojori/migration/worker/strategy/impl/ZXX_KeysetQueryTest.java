@@ -2,8 +2,9 @@ package com.yojori.migration.worker.strategy.impl;
 
 import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import com.yojori.migration.worker.strategy.impl.KeysetMigrationStrategy;
 
-public class KeysetQueryTest {
+public class ZXX_KeysetQueryTest {
 
     @Test
     public void testApplyLimit() {

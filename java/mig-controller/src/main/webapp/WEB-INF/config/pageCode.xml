@@ -9,7 +9,9 @@
             <option value="NORMAL">일반 이관</option>
             <option value="THREAD">Thread 이관</option>
             <option value="THREAD_IDX">Thread(INDEX) 이관</option>
+            <!--
             <option value="THREAD_MULTI">Thread(MULTI) 이관</option>
+            -->
             <option value="TABLE">테이블단위 이관</option>
             <option value="PROC">프로시져 호출</option>
             <option value="JAVA">Java Method 호출</option>

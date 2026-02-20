@@ -18,8 +18,8 @@ import java.util.ArrayList;
 
 import com.yojori.migration.worker.strategy.ProgressListener;
 
-@Component("THREAD_MULTI")
-public class ThreadMultiMigrationStrategy extends AbstractMigrationStrategy {
+@Component("THREAD_MULTI_OLD") // Deprecated
+public class ZXX_ThreadMultiMigrationStrategy extends AbstractMigrationStrategy {
 
     @Autowired
     private WorkerClient workerClient;

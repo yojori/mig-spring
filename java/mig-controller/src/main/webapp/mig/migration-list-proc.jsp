@@ -21,8 +21,8 @@
     	manager.insert(master);
     }
     
-    // Process Table Bulk Insert if type is TABLE
-    if ("TABLE".equals(master.getMig_type())) {
+    // Process Table Bulk Insert if type is TABLE or JAVA
+    if ("TABLE".equals(master.getMig_type()) || "JAVA".equals(master.getMig_type())) {
         String source_table_str = request.getParameter("source_table_area");
         String source_pk_str = request.getParameter("source_pk_area");
         String target_table_str = request.getParameter("target_table_area");
@@ -65,7 +65,13 @@
 %>
 	location.href = "/mig/insert-table-write.jsp?mig_list_seq=<%=master.getMig_list_seq()%>";
 <%
-	}		
+	}
+	else if("JAVA".equals(master.getMig_type()))
+	{
+%>
+	location.href = "/mig/insert-sql-list.jsp?mig_list_seq=<%=master.getMig_list_seq()%>";
+<%
+	}
 	else
 	{
 %>

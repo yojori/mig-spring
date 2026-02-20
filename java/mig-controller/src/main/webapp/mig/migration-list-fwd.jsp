@@ -180,7 +180,9 @@
                                 <td class="text-center">
                                     <div class="btn-group btn-group-sm">
                                         <a href="javascript:goPopupInsert('${list.mig_list_seq}');" class="btn btn-outline-secondary btn-sm" title="Insert SQL"><i class="bi bi-file-earmark-code"></i></a>
-                                        <a href="javascript:goPopupRelation('${list.mig_list_seq}');" class="btn btn-outline-secondary btn-sm" title="Mapping"><i class="bi bi-diagram-3"></i></a>
+                                        <c:if test="${list.mig_type ne 'JAVA'}">
+                                            <a href="javascript:goPopupRelation('${list.mig_list_seq}');" class="btn btn-outline-secondary btn-sm" title="Mapping"><i class="bi bi-diagram-3"></i></a>
+                                        </c:if>
                                     </div>
                                 </td>
                                 <td class="text-center">${list.thread_count}</td>
