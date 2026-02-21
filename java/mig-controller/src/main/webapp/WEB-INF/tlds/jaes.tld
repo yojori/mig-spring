@@ -9,7 +9,7 @@
 	<!-- Common Code Dropdown -->
 	<tag>
 		<name>code</name>
-		<tag-class>com.yojori.migration.controller.taglib.CodeTag</tag-class>
+		<tag-class>c.y.mig.controller.taglib.CodeTag</tag-class>
 		<body-content>empty</body-content>
 		<attribute>
 			<name>id</name>
@@ -61,7 +61,7 @@
 	<!-- Common Code Dropdown (Alias) -->
 	<tag>
 		<name>codeselect</name>
-		<tag-class>com.yojori.migration.controller.taglib.CodeTag</tag-class>
+		<tag-class>c.y.mig.controller.taglib.CodeTag</tag-class>
 		<body-content>empty</body-content>
 		<attribute>
 			<name>id</name>
@@ -123,7 +123,7 @@
     <!-- Radio Button -->
 	<tag>
 		<name>radio</name>
-		<tag-class>com.yojori.migration.controller.taglib.RadioTag</tag-class>
+		<tag-class>c.y.mig.controller.taglib.RadioTag</tag-class>
 		<body-content>empty</body-content>
 		<attribute>
 			<name>id</name>
@@ -171,7 +171,7 @@
     <!-- Paging -->
 	<tag>
 		<name>paging</name>
-		<tag-class>com.yojori.migration.controller.taglib.PagingTag</tag-class>
+		<tag-class>c.y.mig.controller.taglib.PagingTag</tag-class>
 		<body-content>JSP</body-content>	
 		<attribute>
 			<name>currentPage</name>
@@ -208,7 +208,7 @@
 	<!-- SubString -->
 	<tag>
 		<name>substring</name>
-		<tag-class>com.yojori.migration.controller.taglib.SubStringTag</tag-class>
+		<tag-class>c.y.mig.controller.taglib.SubStringTag</tag-class>
 		<body-content>empty</body-content>
 		<attribute>
 			<name>strText</name>
@@ -224,7 +224,7 @@
 	<!-- CodeRadios -->
 	<tag>
 		<name>coderadios</name>
-		<tag-class>com.yojori.migration.controller.taglib.CodeRadioTag</tag-class>
+		<tag-class>c.y.mig.controller.taglib.CodeRadioTag</tag-class>
 		<body-content>empty</body-content>
 		<attribute>
 			<name>id</name>

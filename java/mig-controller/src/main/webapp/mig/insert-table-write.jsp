@@ -1,7 +1,7 @@
 <%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8" %>
-	<%@ page import="com.yojori.util.*" %>
-		<%@ page import="com.yojori.manager.*" %>
-			<%@ page import="com.yojori.model.*" %>
+	<%@ page import="c.y.mig.util.*" %>
+		<%@ page import="c.y.mig.manager.*" %>
+			<%@ page import="c.y.mig.model.*" %>
 				<%@ page import="java.util.*" %>
 					<%@include file="/mig/session-admin-check.jsp" %>
 						<% InsertTable search=(InsertTable) RequestUtils.getBean(request, InsertTable.class);

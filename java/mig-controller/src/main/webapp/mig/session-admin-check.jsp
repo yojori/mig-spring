@@ -1,2 +1,2 @@
 <%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
-<%@ page import="com.yojori.util.*" %>
+<%@ page import="c.y.mig.util.*" %>

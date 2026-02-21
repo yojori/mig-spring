@@ -36,7 +36,7 @@
 			<release-home>D:\release</release-home>
 			<web-home>D:\eclipse_work\movie_lecture\WebContent</web-home>
 			<source-home>D:\eclipse_work\movie_lecture\src</source-home>
-			<batch-file>D:\eclipse_work\movie_lecture\src\com\yojori\release\build.bat</batch-file>
+			<batch-file>D:\eclipse_work\movie_lecture\src\c\y\mig\release\build.bat</batch-file>
 			<web-root-name>WebContent</web-root-name>
 			<release-prefix>knj_admin_release_</release-prefix>
 		</release>

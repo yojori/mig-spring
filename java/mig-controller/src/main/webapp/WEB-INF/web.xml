@@ -9,7 +9,7 @@
 
   <filter> 
     <filter-name>Set Character Encoding</filter-name>
-    <filter-class>com.yojori.filter.SetCharacterEncodingFilter</filter-class>
+    <filter-class>c.y.mig.filter.SetCharacterEncodingFilter</filter-class>
     <init-param>
       <param-name>encoding</param-name>
       <param-value>utf-8</param-value>
@@ -22,7 +22,7 @@
 
   <servlet>
     <servlet-name>config</servlet-name>
-    <servlet-class>com.yojori.servlet.ConfigServlet</servlet-class>
+    <servlet-class>c.y.mig.servlet.ConfigServlet</servlet-class>
     <init-param>
       <param-name>log4j</param-name>
       <param-value>log4j.properties</param-value>

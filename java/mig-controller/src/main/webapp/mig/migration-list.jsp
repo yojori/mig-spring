@@ -1,9 +1,9 @@
 <%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8" %>
-<%@ page import="com.yojori.util.*" %>
-<%@ page import="com.yojori.model.*" %>
-<%@ page import="com.yojori.manager.MigrationListManager" %>
-<%@ page import="com.yojori.manager.MigrationMasterManager" %>
-<%@ page import="com.yojori.manager.InterfaceManager" %>
+<%@ page import="c.y.mig.util.*" %>
+<%@ page import="c.y.mig.model.*" %>
+<%@ page import="c.y.mig.manager.MigrationListManager" %>
+<%@ page import="c.y.mig.manager.MigrationMasterManager" %>
+<%@ page import="c.y.mig.manager.InterfaceManager" %>
 <%@ page import="java.util.*" %>
 <%@include file="/mig/session-admin-check.jsp" %>
 <%
