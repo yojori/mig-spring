@@ -2,7 +2,6 @@ package com.yojori.manager;
 
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
-import java.util.Date;
 import java.util.List;
 
 import com.yojori.db.query.Delete;
@@ -48,8 +47,10 @@ public abstract class Manager implements InterfaceManager {
 
     public void setListQuery(Select listQuery) {
         this.listQuery = listQuery;
-        this.countQuery.setWhereField(listQuery.getWhereField());
-        this.countQuery.setWhere(listQuery.getWhere());
+        if (this.countQuery != null) {
+            this.countQuery.setWhereField(listQuery.getWhereField());
+            this.countQuery.setWhere(listQuery.getWhere());
+        }
     }
 
     public Select getListQuery() {
@@ -96,7 +97,7 @@ public abstract class Manager implements InterfaceManager {
         int i = setParameterValue(param, pstmt, 0, 0); // Always start from 0 for internal
 
         // Internal DB Paging (assuming MariaDB/MySQL for Controller DB)
-        if (getPageGubun() == PAGE) {
+        if (getPageGubun() == PAGE && form != null) {
             pstmt.setInt(i + 1, (form.getCurrentPage() - 1) * form.getPageSize());
             pstmt.setInt(i + 2, form.getPageSize());
         }
@@ -108,17 +109,14 @@ public abstract class Manager implements InterfaceManager {
             if (parameter instanceof Dummy)
                 continue;
 
-            // log.info("index : " + (index + 1) + ", value : " + (parameter == null ?
-            // "null" : parameter.toString()));
-
             if (parameter == null)
                 pstmt.setString(++index, null);
             else if (parameter instanceof String)
                 pstmt.setString(++index, (String) parameter);
             else if (parameter instanceof Integer)
                 pstmt.setInt(++index, ((Integer) parameter).intValue());
-            else if (parameter instanceof Date)
-                pstmt.setTimestamp(++index, new java.sql.Timestamp(((Date) parameter).getTime()));
+            else if (parameter instanceof java.util.Date)
+                pstmt.setTimestamp(++index, new java.sql.Timestamp(((java.util.Date) parameter).getTime()));
             else
                 pstmt.setObject(++index, parameter);
 

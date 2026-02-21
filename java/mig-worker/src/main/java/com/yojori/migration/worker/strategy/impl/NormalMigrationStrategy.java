@@ -9,24 +9,20 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import com.yojori.db.query.Select;
-import com.yojori.migration.worker.model.InsertSql;
-import com.yojori.migration.worker.model.InsertTable;
-import com.yojori.migration.worker.model.MigrationList;
-import com.yojori.migration.worker.model.MigrationSchema;
-import com.yojori.migration.worker.service.PagingQueryBuilder;
 import com.yojori.migration.worker.strategy.AbstractMigrationStrategy;
 import com.yojori.migration.worker.strategy.ProgressListener;
+import com.yojori.model.InsertSql;
+import com.yojori.model.InsertTable;
+import com.yojori.model.MigrationList;
+import com.yojori.model.MigrationSchema;
 import com.yojori.util.StringUtil;
 
 @Component("NORMAL")
 public class NormalMigrationStrategy extends AbstractMigrationStrategy {
 
-    @Autowired
-    private PagingQueryBuilder pagingQueryBuilder;
 
     @Override
     public void execute(MigrationSchema schema, MigrationList workList, ProgressListener listener) throws Exception {
@@ -40,17 +36,13 @@ public class NormalMigrationStrategy extends AbstractMigrationStrategy {
         ResultSet sourceRs = null;
 
         try {
-            // 1. Prepare Source Connection & Query
+            // 1. Prepare Source connection & Query
             sourceConn = dynamicDataSource.getConnection(schema.getSource());
-            
-            // Streaming mode often requires specific Statement options (e.g., fetchSize)
-            // MySQL: Integer.MIN_VALUE, Postgres: setFetchSize(n) with autoCommit false
             
             String sqlSource = "";
             List<InsertTable> tables = schema.getInsertTableList();
             
             if (tables != null && !tables.isEmpty()) {
-                // Use First Table
                 InsertTable insertT = tables.get(0);
                 Select select = new Select();
                 select.addField(" * ");
@@ -68,54 +60,21 @@ public class NormalMigrationStrategy extends AbstractMigrationStrategy {
 
             log.info("Source SQL: {}", sqlSource);
             
-            // Prepare Statement with Streaming options if possible
             sourcePstmt = sourceConn.prepareStatement(sqlSource, ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY);
-            sourcePstmt.setFetchSize(1000); // Default fetch size
+            sourcePstmt.setFetchSize(1000);
             
             sourceRs = sourcePstmt.executeQuery();
             ResultSetMetaData meta = sourceRs.getMetaData();
             int colCount = meta.getColumnCount();
 
-            // 2. Prepare Target Connection & Statements
+            // 2. Prepare Target connection & Statements
             targetConn = dynamicDataSource.getConnection(schema.getTarget());
             targetConn.setAutoCommit(false);
-
+            
             List<InsertSql> sqlList = schema.getInsertSqlList();
             if (sqlList == null || sqlList.isEmpty()) {
                 log.warn("No Target Insert SQLs defined!");
-                return; 
-            }
-            
-            // Truncate Logic
-            // Truncate Logic
-            if (tables != null && !tables.isEmpty()) {
-                 log.info("Checking Truncate for Tables: {}", tables.size());
-                 for (InsertTable t : tables) {
-                     String truncYn = StringUtil.nvl(t.getTruncate_yn());
-                     log.info("Table: {}, TruncateYN: [{}] (Raw: {})", t.getTarget_table(), truncYn, t.getTruncate_yn());
-                     if ("Y".equalsIgnoreCase(truncYn)) {
-                         log.info("Truncating Table: {}", t.getTarget_table());
-                         executeTruncate(targetConn, t.getTarget_table());
-                     }
-                 }
-            } else {
-                log.info("Checking Truncate for SQLs: {}", (sqlList != null ? sqlList.size() : 0));
-                // SQL String Mode uses InsertSql configuration
-                if (sqlList != null) {
-                    for (InsertSql s : sqlList) {
-                        log.info("SQL Table: {}, TruncateYN: [{}]", s.getInsert_table(), s.getTruncate_yn());
-                        if ("Y".equalsIgnoreCase(StringUtil.nvl(s.getTruncate_yn()))) {
-                            log.info("Truncating Table: {}", s.getInsert_table());
-                            executeTruncate(targetConn, s.getInsert_table());
-                        }
-                    }
-                }
-            }
-            
-            // Explicitly commit Truncate (DDL might be transactional)
-            if (tables != null && !tables.isEmpty() || (sqlList != null && !sqlList.isEmpty())) {
-                 log.info("Committing Truncate transaction...");
-                 targetConn.commit();
+                return;
             }
 
             targetPstmts = new PreparedStatement[sqlList.size()];
@@ -136,14 +95,12 @@ public class NormalMigrationStrategy extends AbstractMigrationStrategy {
 
             while (sourceRs.next()) {
                 totalRead++;
-                // Map row data
                 Map<String, Object> row = new HashMap<>();
                 for (int i = 1; i <= colCount; i++) {
                     String colName = meta.getColumnName(i).toUpperCase();
                     row.put(colName, sourceRs.getObject(i));
                 }
 
-                // Add to batch
                 for (int i = 0; i < sqlList.size(); i++) {
                     if (targetPstmts[i] == null) continue;
                     setTargetParams(targetPstmts[i], sqlList.get(i), schema.getInsertColumnList(), row);
@@ -152,21 +109,16 @@ public class NormalMigrationStrategy extends AbstractMigrationStrategy {
 
                 rowCount++;
 
-                // Execute Batch
                 if (rowCount % batchSize == 0) {
-                    if (listener != null) listener.onProgress(totalRead, totalInserted);
                     executeBatch(targetPstmts);
                     targetConn.commit();
-                    totalInserted += rowCount; // Simplified count tracking
+                    totalInserted += rowCount;
                     log.info("Processed {} rows...", totalInserted);
                     if (listener != null) listener.onProgress(totalRead, totalInserted);
-                    rowCount = 0; // Reset checking counter, though logical total increases
-                    // Actually let's keep totalInserted accurate
-                     // Reset batch counter
+                    rowCount = 0;
                 }
             }
 
-            // Final Batch
             if (rowCount > 0) {
                 executeBatch(targetPstmts);
                 targetConn.commit();
@@ -178,7 +130,9 @@ public class NormalMigrationStrategy extends AbstractMigrationStrategy {
 
         } catch (Exception e) {
             log.error("Migration failed", e);
-            try { if (targetConn != null) targetConn.rollback(); } catch (SQLException ex) {}
+            if (targetConn != null) {
+                try { targetConn.rollback(); } catch (SQLException ex) {}
+            }
             throw e;
         } finally {
             closeResources(sourceRs, sourcePstmt, sourceConn);
@@ -190,6 +144,7 @@ public class NormalMigrationStrategy extends AbstractMigrationStrategy {
         
         logEnd(workList.getMig_name(), System.currentTimeMillis());
     }
+
     
 
 }

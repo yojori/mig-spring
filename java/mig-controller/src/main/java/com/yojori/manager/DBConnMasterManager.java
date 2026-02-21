@@ -2,14 +2,14 @@ package com.yojori.manager;
 
 import com.yojori.db.DBManager;
 import com.yojori.db.query.*;
-import com.yojori.migration.controller.model.DBConnMaster;
-import com.yojori.migration.controller.model.MigrationList;
-import com.yojori.migration.controller.model.MigrationSchema;
+import com.yojori.model.DBConnMaster;
+import com.yojori.model.MigrationList;
+import com.yojori.model.MigrationSchema;
+import com.yojori.model.Search;
 import com.yojori.util.StringUtil;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Component;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -18,7 +18,6 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
-@Component
 public class DBConnMasterManager extends Manager {
 
     private static final Logger log = LoggerFactory.getLogger(DBConnMasterManager.class);

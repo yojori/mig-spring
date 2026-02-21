@@ -5,11 +5,11 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import com.yojori.migration.worker.model.MigrationList;
-import com.yojori.migration.worker.model.MigrationSchema;
 import com.yojori.migration.worker.strategy.MigrationFactory;
 import com.yojori.migration.worker.strategy.MigrationStrategy;
 import com.yojori.migration.worker.strategy.ProgressListener;
+import com.yojori.model.MigrationList;
+import com.yojori.model.MigrationSchema;
 
 @Service
 public class MigrationExecutor {
@@ -33,6 +33,7 @@ public class MigrationExecutor {
             MigrationStrategy strategy = migrationFactory.getStrategy(migType);
 
             if (strategy != null) {
+                strategy.prepare(schema, task);
                 strategy.execute(schema, task, listener);
             } else {
                 throw new UnsupportedOperationException("No strategy found for type: " + migType);

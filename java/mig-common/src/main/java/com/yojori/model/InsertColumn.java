@@ -1,4 +1,4 @@
-package com.yojori.migration.controller.model;
+package com.yojori.model;
 
 public class InsertColumn extends Search {
 
@@ -86,6 +86,16 @@ public class InsertColumn extends Search {
 
     public String getInsert_table() {
         return insert_table;
+    }
+
+    private java.util.List<String> sqlFuncBindCols;
+
+    public java.util.List<String> getSqlFuncBindCols() {
+        return sqlFuncBindCols;
+    }
+
+    public void setSqlFuncBindCols(java.util.List<String> sqlFuncBindCols) {
+        this.sqlFuncBindCols = sqlFuncBindCols;
     }
 
     public void setInsert_table(String insert_table) {

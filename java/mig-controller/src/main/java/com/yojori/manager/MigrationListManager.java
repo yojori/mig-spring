@@ -4,8 +4,14 @@ import com.yojori.db.DBManager;
 import com.yojori.db.query.Insert;
 import com.yojori.db.query.Select;
 import com.yojori.db.query.Update;
-import com.yojori.migration.controller.model.MigrationList;
+import com.yojori.model.MigrationList;
+import com.yojori.model.InsertTable;
+import com.yojori.model.InsertSql;
+import com.yojori.model.InsertColumn;
+import com.yojori.model.SelectColumn;
+import com.yojori.model.DBConnMaster;
 import com.yojori.util.StringUtil;
+import com.yojori.util.Config;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -15,11 +21,9 @@ import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
-import com.yojori.migration.controller.model.InsertTable;
+import java.util.Date;
 
 public class MigrationListManager extends Manager {
 
@@ -356,8 +360,17 @@ public class MigrationListManager extends Manager {
                 return;
             }
 
-            sourceConn = DBManager.getMIGConnection(ml.getSource_db_alias());
-            targetConn = DBManager.getMIGConnection(ml.getTarget_db_alias());
+            DBConnMasterManager dbm = new DBConnMasterManager();
+            DBConnMaster sourceMasterKey = new DBConnMaster();
+            sourceMasterKey.setMaster_code(ml.getSource_db_alias());
+            DBConnMaster sourceMaster = dbm.find(sourceMasterKey);
+
+            DBConnMaster targetMasterKey = new DBConnMaster();
+            targetMasterKey.setMaster_code(ml.getTarget_db_alias());
+            DBConnMaster targetMaster = dbm.find(targetMasterKey);
+
+            sourceConn = DBManager.getConnection(sourceMaster);
+            targetConn = DBManager.getConnection(targetMaster);
 
             for (InsertTable insertTable : list) {
                 Select select = new Select();
@@ -481,5 +494,182 @@ public class MigrationListManager extends Manager {
         typeMap.put("91_postgresql", "DATE");
         // Add more as needed or move to Manager.java properly if this list is incomplete for user's DB
         return typeMap;
+    }
+
+    public void autoRegisterColumns(MigrationList ml) {
+        log.info("Auto-registering columns for: " + ml.getMig_list_seq() + " (" + ml.getMig_type() + ")");
+        
+        Connection sourceConn = null;
+        PreparedStatement stmt = null;
+        ResultSet rs = null;
+
+        try {
+            DBConnMasterManager dbm_local = new DBConnMasterManager();
+            DBConnMaster sourceMasterKey = new DBConnMaster();
+            sourceMasterKey.setMaster_code(ml.getSource_db_alias());
+            DBConnMaster sourceMaster = dbm_local.find(sourceMasterKey);
+            sourceConn = DBManager.getConnection(sourceMaster);
+            
+            String baseQuery = "";
+            if ("TABLE".equals(ml.getMig_type())) {
+                // For TABLE type, we need to find the InsertTable entry to know the source table
+                InsertTableManager itm = new InsertTableManager();
+                InsertTable itSearch = new InsertTable();
+                itSearch.setMig_list_seq(ml.getMig_list_seq());
+                List<InsertTable> itList = itm.getList(itSearch, InterfaceManager.LIST);
+                if (itList != null && !itList.isEmpty()) {
+                    baseQuery = "SELECT * FROM " + itList.get(0).getSource_table();
+                } else {
+                    log.warn("No InsertTable found for TABLE type migration: " + ml.getMig_list_seq());
+                    return;
+                }
+            } else {
+                baseQuery = ml.getSql_string();
+            }
+
+            if (StringUtil.empty(baseQuery)) {
+                log.warn("Base query is empty for autoRegisterColumns. Task: " + ml.getMig_list_seq());
+                return;
+            }
+
+            String sql = getRownum1Sql(baseQuery, ml.getSource_db_type());
+            log.info("Executing metadata query: " + sql);
+            
+            stmt = sourceConn.prepareStatement(sql);
+            rs = stmt.executeQuery();
+            ResultSetMetaData meta = rs.getMetaData();
+            int columnCount = meta.getColumnCount();
+
+            // 1. Register Select Columns
+            SelectColumnManager scm = new SelectColumnManager();
+            // Optional: Clear existing columns? Usually okay for new registrations.
+            
+            for (int i = 1; i <= columnCount; i++) {
+                SelectColumn col = new SelectColumn();
+                col.setColumn_seq(Config.getOrdNoSequence("SC"));
+                col.setMig_list_seq(ml.getMig_list_seq());
+                col.setColumn_name(meta.getColumnLabel(i).toUpperCase());
+                col.setColumn_type(meta.getColumnTypeName(i));
+                col.setCreate_date(new Date());
+                col.setUpdate_date(new Date());
+                col.setOrdering(i * 10);
+                scm.insert(col);
+            }
+
+            // 2. Register Insert Sql & Columns (One per TABLE or SQL type by default)
+            InsertSqlManager ism = new InsertSqlManager();
+            InsertColumnManager icm = new InsertColumnManager();
+            
+            String insertTableName = "";
+            if ("TABLE".equals(ml.getMig_type())) {
+                 InsertTableManager itm = new InsertTableManager();
+                 InsertTable itSearch = new InsertTable();
+                 itSearch.setMig_list_seq(ml.getMig_list_seq());
+                 List<InsertTable> itList = itm.getList(itSearch, InterfaceManager.LIST);
+                 if (itList != null && !itList.isEmpty()) {
+                     insertTableName = itList.get(0).getTarget_table();
+                 }
+            }
+            
+            if (StringUtil.empty(insertTableName)) {
+                insertTableName = "TARGET_TABLE_PLACEHOLDER";
+            }
+
+            InsertSql is = new InsertSql();
+            String insertSqlSeq = Config.getOrdNoSequence("IS");
+            is.setInsert_sql_seq(insertSqlSeq);
+            is.setMig_list_seq(ml.getMig_list_seq());
+            is.setInsert_type("INSERT");
+            is.setInsert_table(insertTableName);
+            is.setOrdering(10);
+            is.setCreate_date(new Date());
+            is.setUpdate_date(new Date());
+            is.setTruncate_yn("N");
+            ism.insert(is);
+
+            for (int i = 1; i <= columnCount; i++) {
+                InsertColumn col = new InsertColumn();
+                col.setInsert_column_seq(Config.getOrdNoSequence("IC"));
+                col.setInsert_sql_seq(insertSqlSeq);
+                col.setColumn_name(meta.getColumnLabel(i).toUpperCase());
+                col.setColumn_type(meta.getColumnTypeName(i));
+                col.setInsert_data(meta.getColumnLabel(i).toUpperCase());
+                col.setInsert_value("");
+                col.setCreate_date(new Date());
+                col.setUpdate_date(new Date());
+                icm.insert(col);
+            }
+
+        } catch (Exception e) {
+            log.error("Failed autoRegisterColumns for " + ml.getMig_list_seq(), e);
+        } finally {
+            DBManager.close(rs, stmt, sourceConn);
+        }
+    }
+
+    public List<String> bulkInsertTableTasks(MigrationList master, String sourceTableArea, String sourcePkArea, String targetTableArea, String truncateYn) {
+        List<String> createdSeqs = new ArrayList<String>();
+        if (StringUtil.empty(sourceTableArea)) return createdSeqs;
+
+        String[] source_table = sourceTableArea.split("\r\n");
+        String[] source_pk = (sourcePkArea != null) ? sourcePkArea.split("\r\n") : new String[0];
+        String[] target_table = (targetTableArea != null) ? targetTableArea.split("\r\n") : new String[0];
+
+        int threadCount = (master.getThread_count() <= 0) ? 1 : master.getThread_count();
+
+        for (int i = 0; i < source_table.length; i++) {
+            String sTable = source_table[i].trim();
+            if (sTable.isEmpty()) continue;
+
+            String tTable = (i < target_table.length && !target_table[i].trim().isEmpty()) ? target_table[i].trim() : sTable;
+            String sPk = (i < source_pk.length) ? source_pk[i].trim() : "";
+
+            for (int t = 0; t < threadCount; t++) {
+                MigrationList ml = new MigrationList();
+                // Copy properties from master
+                ml.setMig_master(master.getMig_master());
+                ml.setSource_db_alias(master.getSource_db_alias());
+                ml.setTarget_db_alias(master.getTarget_db_alias());
+                ml.setMig_type(master.getMig_type());
+                ml.setThread_use_yn(threadCount > 1 ? "Y" : "N");
+                ml.setThread_count(threadCount);
+                ml.setPage_count_per_thread(master.getPage_count_per_thread());
+                ml.setExecute_yn(master.getExecute_yn());
+                ml.setDisplay_yn(master.getDisplay_yn());
+                ml.setOrdering(master.getOrdering());
+                
+                String taskName = sTable;
+                if (threadCount > 1) {
+                    taskName += " (" + (t + 1) + "/" + threadCount + ")";
+                    ml.setParam_string("thread_count:" + threadCount + ";thread_idx:" + t);
+                }
+                ml.setMig_name(taskName);
+                String newSeq = Config.getOrdNoSequence("ML");
+                ml.setMig_list_seq(newSeq);
+                ml.setCreate_date(new Date());
+                ml.setUpdate_date(new Date());
+                
+                this.insert(ml);
+                
+                // Create InsertTable entry
+                InsertTableManager itm = new InsertTableManager();
+                InsertTable it = new InsertTable();
+                it.setInsert_table_seq(Config.getOrdNoSequence("IT"));
+                it.setMig_list_seq(ml.getMig_list_seq());
+                it.setSource_table(sTable);
+                it.setSource_pk(sPk);
+                it.setTarget_table(tTable);
+                it.setTruncate_yn((truncateYn != null && "Y".equals(truncateYn)) ? "Y" : "N");
+                it.setCreate_date(new Date());
+                it.setUpdate_date(new Date());
+                itm.insert(it);
+                
+                // Auto-register columns
+                this.autoRegisterColumns(ml);
+                
+                createdSeqs.add(newSeq);
+            }
+        }
+        return createdSeqs;
     }
 }

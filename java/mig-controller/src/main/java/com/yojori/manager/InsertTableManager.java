@@ -2,7 +2,8 @@ package com.yojori.manager;
 
 import com.yojori.db.DBManager;
 import com.yojori.db.query.*;
-import com.yojori.migration.controller.model.InsertTable;
+import com.yojori.model.InsertTable;
+import com.yojori.model.Search;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

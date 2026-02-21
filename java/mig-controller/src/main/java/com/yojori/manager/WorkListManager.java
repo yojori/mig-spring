@@ -14,7 +14,7 @@ import com.yojori.db.DBManager;
 import com.yojori.db.query.Insert;
 import com.yojori.db.query.Select;
 import com.yojori.db.query.Update;
-import com.yojori.migration.controller.model.WorkList;
+import com.yojori.model.WorkList;
 
 public class WorkListManager extends Manager {
 
@@ -24,6 +24,7 @@ public class WorkListManager extends Manager {
         Select sql = new Select();
         sql.addField("A.*");
         sql.addField("B.mig_name");
+        sql.addField("B.mig_master");
         sql.addFrom(WORK_LIST + " A");
         sql.addFrom(MIGRATION_LIST + " B");
         sql.addWhere("A.mig_list_seq = B.mig_list_seq");
@@ -105,6 +106,7 @@ public class WorkListManager extends Manager {
                     entity.setParam_string(rs.getString("param_string"));
                     
                     entity.setMig_name(rs.getString("mig_name"));
+                    entity.setMig_master(rs.getString("mig_master"));
                     
                     list.add(entity);
                     i++;

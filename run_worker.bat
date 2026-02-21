@@ -1,7 +1,17 @@
 @echo off
 set "WORKER_ID=%~1"
 
-cd java\mig-worker
+echo Building Migration Common...
+cd java\mig-common
+call mvn install
+if %errorlevel% neq 0 (
+    echo.
+    echo MIGRATION-COMMON BUILD FAILED.
+    pause
+    exit /b %errorlevel%
+)
+
+cd ..\mig-worker
 
 if "%WORKER_ID%"=="" (
     echo Starting Migration Worker [Default ID]...

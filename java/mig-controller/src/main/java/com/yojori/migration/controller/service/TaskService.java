@@ -1,7 +1,7 @@
 package com.yojori.migration.controller.service;
 
-import com.yojori.migration.controller.model.MigrationSchema;
-import com.yojori.migration.controller.model.WorkerStatus;
+import com.yojori.model.MigrationSchema;
+import com.yojori.model.WorkerStatus;
 
 public interface TaskService {
     String allocateTask(String workerId);
@@ -10,7 +10,7 @@ public interface TaskService {
 
     void updateStatus(WorkerStatus status);
 
-    void createChildTask(com.yojori.migration.controller.model.MigrationList childTask);
+    void createChildTask(com.yojori.model.MigrationList childTask);
 
-    java.util.List<com.yojori.migration.controller.model.DBConnMaster> getAllDBConnections();
+    java.util.List<com.yojori.model.DBConnMaster> getAllDBConnections();
 }

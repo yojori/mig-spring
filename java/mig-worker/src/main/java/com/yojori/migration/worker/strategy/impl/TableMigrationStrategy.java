@@ -1,10 +1,11 @@
 package com.yojori.migration.worker.strategy.impl;
 
-import com.yojori.migration.worker.model.MigrationList;
-import com.yojori.migration.worker.model.MigrationSchema;
+import org.springframework.stereotype.Component;
+
 import com.yojori.migration.worker.strategy.AbstractMigrationStrategy;
 import com.yojori.migration.worker.strategy.ProgressListener;
-import org.springframework.stereotype.Component;
+import com.yojori.model.MigrationList;
+import com.yojori.model.MigrationSchema;
 
 @Component("TABLE")
 public class TableMigrationStrategy extends AbstractMigrationStrategy {

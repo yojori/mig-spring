@@ -13,8 +13,8 @@ import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Service;
 
 import com.yojori.migration.worker.client.WorkerClient;
-import com.yojori.migration.worker.model.MigrationSchema;
-import com.yojori.migration.worker.model.WorkerStatus;
+import com.yojori.model.MigrationSchema;
+import com.yojori.model.WorkerStatus;
 
 @Service
 public class WorkerService implements CommandLineRunner, InitializingBean {
@@ -59,7 +59,7 @@ public class WorkerService implements CommandLineRunner, InitializingBean {
         
         // Init DB Pools
         try {
-            java.util.List<com.yojori.migration.worker.model.DBConnMaster> conns = workerClient.getDBConnections();
+            java.util.List<com.yojori.model.DBConnMaster> conns = workerClient.getDBConnections();
             dynamicDataSource.initializePools(conns);
             log.info("Initialized {} DB connection pools.", (conns != null ? conns.size() : 0));
         } catch (Exception e) {

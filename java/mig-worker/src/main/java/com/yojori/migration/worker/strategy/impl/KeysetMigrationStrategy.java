@@ -1,12 +1,10 @@
 package com.yojori.migration.worker.strategy.impl;
 
-import com.yojori.db.query.Select;
-import com.yojori.migration.worker.model.*;
-import com.yojori.migration.worker.strategy.AbstractMigrationStrategy;
-import com.yojori.util.StringUtil;
-import org.springframework.stereotype.Component;
-
-import java.sql.*;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -15,7 +13,18 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+
+import org.springframework.stereotype.Component;
+
+import com.yojori.db.query.Select;
+import com.yojori.migration.worker.strategy.AbstractMigrationStrategy;
 import com.yojori.migration.worker.strategy.ProgressListener;
+import com.yojori.model.DBConnMaster;
+import com.yojori.model.InsertSql;
+import com.yojori.model.InsertTable;
+import com.yojori.model.MigrationList;
+import com.yojori.model.MigrationSchema;
+import com.yojori.util.StringUtil;
 
 @Component("THREAD_IDX")
 public class KeysetMigrationStrategy extends AbstractMigrationStrategy {
@@ -68,8 +77,6 @@ public class KeysetMigrationStrategy extends AbstractMigrationStrategy {
         String[] pkCols = pkCol.split(",");
         for(int i=0; i<pkCols.length; i++) pkCols[i] = pkCols[i].trim();
 
-        // 2. Prepare Target
-        prepareTargetTable(schema);
 
         // 3. Fetch Chunk Keys (from Rownum Strategy)
         int fetchSize = workList.getPage_count_per_thread();
@@ -340,23 +347,6 @@ public class KeysetMigrationStrategy extends AbstractMigrationStrategy {
         }
     }
 
-    private void prepareTargetTable(MigrationSchema schema) throws SQLException {
-        Connection targetConn = null;
-        try {
-             targetConn = dynamicDataSource.getConnection(schema.getTarget());
-             List<InsertTable> tables = schema.getInsertTableList();
-             if (tables != null && !tables.isEmpty()) {
-                 for (InsertTable t : tables) {
-                     if ("Y".equalsIgnoreCase(t.getTruncate_yn())) {
-                         log.info("Truncating Table: {}", t.getTarget_table());
-                         executeTruncate(targetConn, t.getTarget_table());
-                     }
-                 }
-             }
-        } finally {
-            closeResources(null, null, targetConn);
-        }
-    }
     
     // Tuple Comparison: (A, B) >= (?, ?)
     // note: >= because we are taking the EXACT start key of the chunk

@@ -56,6 +56,11 @@
                                 .table-hover tbody tr:hover {
                                     background-color: #f8f9fa;
                                 }
+
+                                .hover-link:hover {
+                                    color: #0d6efd !important;
+                                    text-decoration: underline !important;
+                                }
                             </style>
                         </head>
 
@@ -143,8 +148,7 @@
                                                             <td>
                                                                 <span
                                                                     class="fw-bold text-primary">${list.mig_name}</span>
-                                                                <span
-                                                                    class="text-muted small">(${list.mig_list_seq})</span>
+                                                                <a href="./migration-list.jsp?mig_master=${list.mig_master}" class="text-muted small text-decoration-none hover-link">(${list.mig_list_seq})</a>
                                                             </td>
                                                             <td class="text-center small text-muted">${list.worker_id}
                                                             </td>

@@ -1,7 +1,7 @@
 <%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8" %>
     <%@ page import="com.yojori.util.*" %>
         <%@ page import="com.yojori.manager.*" %>
-            <%@ page import="com.yojori.migration.controller.model.*" %>
+            <%@ page import="com.yojori.model.*" %>
                 <%@ page import="java.util.*" %>
                     <%@include file="/mig/session-admin-check.jsp" %>
                         <% request.setCharacterEncoding("UTF-8"); WorkListManager workManager=new WorkListManager();

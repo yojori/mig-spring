@@ -16,8 +16,10 @@ import com.yojori.db.DBManager;
 import com.yojori.db.query.Insert;
 import com.yojori.db.query.Select;
 import com.yojori.db.query.Update;
-import com.yojori.migration.controller.model.MigrationList;
-import com.yojori.migration.controller.model.SelectColumn;
+import com.yojori.model.MigrationList;
+import com.yojori.model.SelectColumn;
+import com.yojori.model.DBConnMaster;
+import com.yojori.model.Search;
 import com.yojori.util.Config;
 
 // Restored from legacy
@@ -344,7 +346,11 @@ public class SelectColumnManager extends Manager {
             }
 
 			log.info("getSource_db_alias : " + mList.getSource_db_alias());			
-			sourceCon = DBManager.getMIGConnection(mList.getSource_db_alias());
+            DBConnMasterManager dbm_local = new DBConnMasterManager();
+            DBConnMaster sourceMasterKey = new DBConnMaster();
+            sourceMasterKey.setMaster_code(mList.getSource_db_alias());
+            DBConnMaster sourceMaster = dbm_local.find(sourceMasterKey);
+			sourceCon = DBManager.getConnection(sourceMaster);
 			
 			log.info("source DB Type : " + mList.getSource_db_type());			
 			//String sql = getRownum1Sql(mList.getSql_string(), mList.getSource_db_type());

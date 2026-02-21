@@ -11,9 +11,9 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.yojori.migration.controller.model.MigrationSchema;
-import com.yojori.migration.controller.model.WorkerStatus;
 import com.yojori.migration.controller.service.TaskService;
+import com.yojori.model.MigrationSchema;
+import com.yojori.model.WorkerStatus;
 
 @RestController
 @RequestMapping("/api/worker")
@@ -47,12 +47,12 @@ public class TaskController {
     }
 
     @PostMapping("/child-task")
-    public void createChildTask(@RequestBody com.yojori.migration.controller.model.MigrationList childTask) {
+    public void createChildTask(@RequestBody com.yojori.model.MigrationList childTask) {
         taskService.createChildTask(childTask);
     }
 
     @GetMapping("/db-connections")
-    public java.util.List<com.yojori.migration.controller.model.DBConnMaster> getDBConnections() {
+    public java.util.List<com.yojori.model.DBConnMaster> getDBConnections() {
         return taskService.getAllDBConnections();
     }
 }

@@ -1,7 +1,4 @@
-package com.yojori.migration.controller.model;
-
-
-
+package com.yojori.model;
 
 public class InsertTable extends Search {
 

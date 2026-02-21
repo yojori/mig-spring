@@ -10,15 +10,15 @@ import org.springframework.stereotype.Service;
 
 import com.yojori.manager.MigrationListManager; // Added import
 import com.yojori.manager.WorkListManager;
-import com.yojori.migration.controller.model.DBConnMaster;
-import com.yojori.migration.controller.model.InsertColumn;
-import com.yojori.migration.controller.model.InsertSql;
-import com.yojori.migration.controller.model.InsertTable;
-import com.yojori.migration.controller.model.MigrationList;
-import com.yojori.migration.controller.model.MigrationMaster;
-import com.yojori.migration.controller.model.MigrationSchema;
-import com.yojori.migration.controller.model.WorkList;
-import com.yojori.migration.controller.model.WorkerStatus;
+import com.yojori.model.DBConnMaster;
+import com.yojori.model.InsertColumn;
+import com.yojori.model.InsertSql;
+import com.yojori.model.InsertTable;
+import com.yojori.model.MigrationList;
+import com.yojori.model.MigrationMaster;
+import com.yojori.model.MigrationSchema;
+import com.yojori.model.WorkList;
+import com.yojori.model.WorkerStatus;
 
 @Service
 public class TaskServiceImpl implements TaskService {

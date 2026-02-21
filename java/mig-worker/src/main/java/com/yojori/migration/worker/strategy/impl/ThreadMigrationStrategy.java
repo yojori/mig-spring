@@ -17,14 +17,14 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import com.yojori.db.query.Select;
-import com.yojori.migration.worker.model.InsertSql;
-import com.yojori.migration.worker.model.InsertTable;
-import com.yojori.migration.worker.model.MigrationList;
-import com.yojori.migration.worker.model.MigrationSchema;
-import com.yojori.migration.worker.model.Search;
 import com.yojori.migration.worker.service.PagingQueryBuilder;
 import com.yojori.migration.worker.strategy.AbstractMigrationStrategy;
 import com.yojori.migration.worker.strategy.ProgressListener;
+import com.yojori.model.InsertSql;
+import com.yojori.model.InsertTable;
+import com.yojori.model.MigrationList;
+import com.yojori.model.MigrationSchema;
+import com.yojori.model.Search;
 import com.yojori.util.StringUtil;
 
 @Component("THREAD")
@@ -54,9 +54,6 @@ public class ThreadMigrationStrategy extends AbstractMigrationStrategy {
         }, 1000, 3000);
 
         try {
-            // Truncate if needed (Single threaded before workers start)
-            prepareTargetTable(schema);
-
             for (int i = 0; i < threadCount; i++) {
                 final int threadNum = i;
                 executor.submit(() -> {
@@ -87,40 +84,6 @@ public class ThreadMigrationStrategy extends AbstractMigrationStrategy {
         logEnd(workList.getMig_name(), System.currentTimeMillis());
     }
     
-    private void prepareTargetTable(MigrationSchema schema) throws SQLException {
-        Connection targetConn = null;
-        try {
-             targetConn = dynamicDataSource.getConnection(schema.getTarget());
-             List<InsertTable> tables = schema.getInsertTableList();
-             if (tables != null && !tables.isEmpty()) {
-                 for (InsertTable t : tables) {
-                     if ("Y".equalsIgnoreCase(StringUtil.nvl(t.getTruncate_yn()))) {
-                         log.info("Truncating Table: {}", t.getTarget_table());
-                         executeTruncate(targetConn, t.getTarget_table());
-                     }
-                 }
-             } else {
-                 if (schema.getInsertSqlList() != null) {
-                     for (InsertSql s : schema.getInsertSqlList()) {
-                        if ("Y".equalsIgnoreCase(StringUtil.nvl(s.getTruncate_yn()))) {
-                             log.info("Truncating Table: {}", s.getInsert_table());
-                             executeTruncate(targetConn, s.getInsert_table());
-                        }
-                     }
-                 }
-             }
-             // Explicitly commit
-             if (!targetConn.getAutoCommit()) {
-                 targetConn.commit();
-             } else {
-                 // Even if auto-commit is true, some drivers might need a nudge or we leave it.
-                 // But if we want to be sure execution happened.
-                 // Actually, if auto-commit is true, executeUpdate commits.
-             }
-        } finally {
-            closeResources(null, null, targetConn);
-        }
-    }
 
     private void processThread(int threadNum, int threadCount, int pageSize, MigrationSchema schema, MigrationList workList, AtomicInteger totalProcessed, AtomicInteger totalRead) {
         Connection sourceConn = null;

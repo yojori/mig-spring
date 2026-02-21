@@ -1,22 +1,26 @@
 package com.yojori.migration.worker.strategy.impl;
 
-import com.yojori.migration.worker.client.WorkerClient;
-import com.yojori.migration.worker.model.*;
-import com.yojori.migration.worker.strategy.AbstractMigrationStrategy;
-import com.yojori.util.Config;
-import com.yojori.util.StringUtil;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
-
-import java.math.BigInteger;
-import java.sql.*;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
+import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
-import java.util.ArrayList;
-// import java.util.HashMap;
 
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
+
+import com.yojori.migration.worker.client.WorkerClient;
+import com.yojori.migration.worker.strategy.AbstractMigrationStrategy;
 import com.yojori.migration.worker.strategy.ProgressListener;
+import com.yojori.model.InsertSql;
+import com.yojori.model.InsertTable;
+import com.yojori.model.MigrationList;
+import com.yojori.model.MigrationSchema;
+import com.yojori.util.StringUtil;
 
 @Component("THREAD_MULTI_OLD") // Deprecated
 public class ZXX_ThreadMultiMigrationStrategy extends AbstractMigrationStrategy {
@@ -172,7 +176,7 @@ public class ZXX_ThreadMultiMigrationStrategy extends AbstractMigrationStrategy 
     }
     
     // Duplicated from KeysetMigrationStrategy due to private access
-    private List<Map<String, Object>> fetchChunkKeys(com.yojori.migration.worker.model.DBConnMaster sourceDs, String tableName, String[] pkCols, int chunkSize) throws SQLException {
+    private List<Map<String, Object>> fetchChunkKeys(com.yojori.model.DBConnMaster sourceDs, String tableName, String[] pkCols, int chunkSize) throws SQLException {
         java.util.List<java.util.Map<String, Object>> keys = new java.util.ArrayList<>();
         Connection conn = null;
         PreparedStatement pstmt = null;
@@ -215,8 +219,4 @@ public class ZXX_ThreadMultiMigrationStrategy extends AbstractMigrationStrategy 
         return keys;
     }
     
-    // Remove unused helper methods from previous version if any checks exist
-    private BigInteger uuidToBigInt(String uuidInfo) { return BigInteger.ZERO; }
-    private String bigIntToUuid(BigInteger val) { return ""; }
-
 }

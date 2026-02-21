@@ -2,8 +2,8 @@ package com.yojori.migration.worker.strategy.impl;
 
 import org.springframework.stereotype.Component;
 
-import com.yojori.migration.worker.model.MigrationList;
-import com.yojori.migration.worker.model.MigrationSchema;
+import com.yojori.model.MigrationList;
+import com.yojori.model.MigrationSchema;
 import com.yojori.migration.worker.strategy.AbstractMigrationStrategy;
 import com.yojori.migration.worker.strategy.ProgressListener;
 

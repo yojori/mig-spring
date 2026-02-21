@@ -1,12 +1,16 @@
-package com.yojori.migration.worker.model;
+package com.yojori.model;
 
 public class InsertSql extends Search {
+
     private String insert_sql_seq;
     private String mig_list_seq;
+
     private String insert_type;
     private String insert_table;
     private String pk_column;
+
     private String truncate_yn;
+    private int ordering;
 
     public String getInsert_sql_seq() {
         return insert_sql_seq;
@@ -54,5 +58,13 @@ public class InsertSql extends Search {
 
     public void setTruncate_yn(String truncate_yn) {
         this.truncate_yn = truncate_yn;
+    }
+
+    public int getOrdering() {
+        return ordering;
+    }
+
+    public void setOrdering(int ordering) {
+        this.ordering = ordering;
     }
 }

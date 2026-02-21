@@ -1,4 +1,4 @@
-package com.yojori.migration.controller.model;
+package com.yojori.model;
 
 public class WorkerStatus {
     private String workerId;

@@ -1,7 +1,7 @@
 package com.yojori.migration.worker.client;
 
-import com.yojori.migration.worker.model.MigrationSchema;
-import com.yojori.migration.worker.model.WorkerStatus;
+import com.yojori.model.MigrationSchema;
+import com.yojori.model.WorkerStatus;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -41,7 +41,7 @@ public class WorkerClient {
         }
     }
 
-    public void createChildTask(com.yojori.migration.worker.model.MigrationList childTask) {
+    public void createChildTask(com.yojori.model.MigrationList childTask) {
         try {
             restTemplate.postForObject(controllerUrl + "/child-task", childTask, Void.class);
         } catch (Exception e) {
@@ -50,12 +50,12 @@ public class WorkerClient {
         }
     }
 
-    public java.util.List<com.yojori.migration.worker.model.DBConnMaster> getDBConnections() {
+    public java.util.List<com.yojori.model.DBConnMaster> getDBConnections() {
         try {
-            org.springframework.core.ParameterizedTypeReference<java.util.List<com.yojori.migration.worker.model.DBConnMaster>> responseType =
-                    new org.springframework.core.ParameterizedTypeReference<java.util.List<com.yojori.migration.worker.model.DBConnMaster>>() {};
+            org.springframework.core.ParameterizedTypeReference<java.util.List<com.yojori.model.DBConnMaster>> responseType =
+                    new org.springframework.core.ParameterizedTypeReference<java.util.List<com.yojori.model.DBConnMaster>>() {};
             
-            org.springframework.http.ResponseEntity<java.util.List<com.yojori.migration.worker.model.DBConnMaster>> response =
+            org.springframework.http.ResponseEntity<java.util.List<com.yojori.model.DBConnMaster>> response =
                     restTemplate.exchange(controllerUrl + "/db-connections", org.springframework.http.HttpMethod.GET, null, responseType);
             
             return response.getBody();

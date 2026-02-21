@@ -1,6 +1,4 @@
-package com.yojori.migration.controller.model;
-
-
+package com.yojori.model;
 
 public class SelectColumn extends Search {
 	
@@ -11,9 +9,7 @@ public class SelectColumn extends Search {
 	private String column_type;
 
 	private int ordering;
-	
-	
-	
+
 	public String getColumn_seq() {
 		return column_seq;
 	}

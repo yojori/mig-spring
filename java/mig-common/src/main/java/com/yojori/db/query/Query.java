@@ -3,7 +3,6 @@ package com.yojori.db.query;
 import java.util.ArrayList;
 import java.util.List;
 
-
 public abstract class Query implements InterfaceQuery {
 
     private List<String> field = new ArrayList<>();
@@ -15,17 +14,10 @@ public abstract class Query implements InterfaceQuery {
     private List<Object> insertField = new ArrayList<>();
     private List<Object> whereField = new ArrayList<>();
 
-    public List<String> getField() { return field; }
-    public List<String> getFrom() { return from; }
-    public List<String> getWhere() { return where; }
-    public List<String> getOrder() { return order; }
-    public List<String> getJoins() { return joins; }
-    public List<Object> getInsertField() { return insertField; }
-    public List<Object> getWhereField() { return whereField; }
-
     public Query() {
     }
 
+    @Override
     public Query addField(String field) {
         this.field.add(field);
         return this;
@@ -44,11 +36,13 @@ public abstract class Query implements InterfaceQuery {
         return this;
     }
 
+    @Override
     public Query addFrom(String tableName) {
         this.from.add(tableName);
         return this;
     }
 
+    @Override
     public Query addWhere(String where) {
         this.where.add(where);
         return this;
@@ -72,26 +66,31 @@ public abstract class Query implements InterfaceQuery {
         return this;
     }
 
+    @Override
     public Query addOrder(String order) {
         this.order.add(order);
         return this;
     }
 
+    @Override
     public Query addInnerJoin(String table, String on) {
         addJoin("INNER JOIN", table, on);
         return this;
     }
 
+    @Override
     public Query addLeftJoin(String table, String on) {
         addJoin("LEFT OUTER JOIN", table, on);
         return this;
     }
 
+    @Override
     public Query addRightJoin(String table, String on) {
         addJoin("RIGHT OUTER JOIN", table, on);
         return this;
     }
 
+    @Override
     public Query addFullJoin(String table, String on) {
         addJoin("FULL OUTER JOIN", table, on);
         return this;
@@ -142,4 +141,26 @@ public abstract class Query implements InterfaceQuery {
         }
         return sql;
     }
+
+    public List<String> getField() { return field; }
+    public void setField(List<String> field) { this.field = field; }
+
+    public List<String> getFrom() { return from; }
+    public void setFrom(List<String> from) { this.from = from; }
+
+    public List<String> getWhere() { return where; }
+    public void setWhere(List<String> where) { this.where = where; }
+
+    public List<String> getOrder() { return order; }
+    public void setOrder(List<String> order) { this.order = order; }
+
+    public List<String> getJoins() { return joins; }
+    public void setJoins(List<String> joins) { this.joins = joins; }
+
+    public List<Object> getInsertField() { return insertField; }
+    public void setInsertField(List<Object> insertField) { this.insertField = insertField; }
+
+    public List<Object> getWhereField() { return whereField; }
+    public void setWhereField(List<Object> whereField) { this.whereField = whereField; }
 }
+

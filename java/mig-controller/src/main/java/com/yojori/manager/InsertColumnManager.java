@@ -1,17 +1,21 @@
 package com.yojori.manager;
 
-import com.yojori.db.DBManager;
-import com.yojori.db.query.*;
-import com.yojori.migration.controller.model.InsertColumn;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.yojori.db.DBManager;
+import com.yojori.db.query.Delete;
+import com.yojori.db.query.Insert;
+import com.yojori.db.query.Select;
+import com.yojori.db.query.Update;
+import com.yojori.model.InsertColumn;
 
 public class InsertColumnManager extends Manager {
     private static final Logger log = LoggerFactory.getLogger(InsertColumnManager.class);

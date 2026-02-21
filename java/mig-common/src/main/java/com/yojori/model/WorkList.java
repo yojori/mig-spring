@@ -1,6 +1,4 @@
-package com.yojori.migration.controller.model;
-
-
+package com.yojori.model;
 
 import java.util.Date;
 
@@ -24,6 +22,7 @@ public class WorkList extends Search {
     
     // Join Fields (Optional, for display)
     private String mig_name;
+    private String mig_master;
     
     private String param_string; // Execution parameters (e.g. PK range)
 
@@ -72,6 +71,9 @@ public class WorkList extends Search {
 
     public String getMig_name() { return mig_name; }
     public void setMig_name(String mig_name) { this.mig_name = mig_name; }
+
+    public String getMig_master() { return mig_master; }
+    public void setMig_master(String mig_master) { this.mig_master = mig_master; }
 
     private String orderBy;
     public String getOrderBy() { return orderBy; }

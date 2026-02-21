@@ -1,4 +1,4 @@
-package com.yojori.migration.worker.model;
+package com.yojori.model;
 
 import java.util.Date;
 
@@ -21,6 +21,11 @@ public class Search {
     private Date updDate;
     private Date modDate;
     private String returnUrl;
+
+    public int getTotalPage() {
+        if (pageSize == 0) return 0;
+        return (int) ((totalCount - 1) / pageSize) + 1;
+    }
 
     public int getListIndex() {
         return listIndex;
@@ -156,10 +161,5 @@ public class Search {
 
     public void setReturnUrl(String returnUrl) {
         this.returnUrl = returnUrl;
-    }
-
-    public int getTotalPage() {
-        if (pageSize == 0) return 0;
-        return (int) Math.ceil((double) totalCount / pageSize);
     }
 }

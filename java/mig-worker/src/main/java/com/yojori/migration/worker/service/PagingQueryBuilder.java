@@ -9,7 +9,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
-import com.yojori.migration.worker.model.Search;
+import com.yojori.model.Search;
 
 @Component
 public class PagingQueryBuilder {

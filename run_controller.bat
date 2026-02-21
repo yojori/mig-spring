@@ -1,10 +1,20 @@
 @echo off
+echo Building Migration Common...
+cd java\mig-common
+call mvn install
+if %errorlevel% neq 0 (
+    echo.
+    echo MIGRATION-COMMON BUILD FAILED.
+    pause
+    exit /b %errorlevel%
+)
+
+cd ..\mig-controller
 echo Starting Migration Controller...
-cd java\mig-controller
 call mvn spring-boot:run
 if %errorlevel% neq 0 (
     echo.
-    echo BUILD FAILED. Please ensure Maven is installed and in your PATH.
+    echo MIGRATION-CONTROLLER FAILED.
     pause
     exit /b %errorlevel%
 )

@@ -1,14 +1,5 @@
 package com.yojori.manager;
 
-import com.yojori.db.DBManager;
-import com.yojori.db.query.*;
-import com.yojori.migration.controller.model.InsertSql;
-import com.yojori.migration.controller.model.InsertColumn;
-import com.yojori.migration.controller.model.MigrationList;
-import com.yojori.util.Config;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -17,6 +8,19 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.yojori.db.DBManager;
+import com.yojori.db.query.Insert;
+import com.yojori.db.query.Select;
+import com.yojori.db.query.Update;
+import com.yojori.model.DBConnMaster;
+import com.yojori.model.InsertColumn;
+import com.yojori.model.InsertSql;
+import com.yojori.model.MigrationList;
+import com.yojori.util.Config;
 
 public class InsertSqlManager extends Manager {
     private static final Logger log = LoggerFactory.getLogger(InsertSqlManager.class);
@@ -147,7 +151,11 @@ public class InsertSqlManager extends Manager {
             }
             
             con = DBManager.getConnection();
-            targetCon = DBManager.getMIGConnection(mList.getTarget_db_alias());
+            DBConnMasterManager dbm_local = new DBConnMasterManager();
+            DBConnMaster targetMasterKey = new DBConnMaster();
+            targetMasterKey.setMaster_code(mList.getTarget_db_alias());
+            DBConnMaster targetMaster = dbm_local.find(targetMasterKey);
+            targetCon = DBManager.getConnection(targetMaster);
             
             String query = "SELECT * FROM " + search.getInsert_table();
             String sql = getRownum1Sql(query, mList.getTarget_db_type()); 

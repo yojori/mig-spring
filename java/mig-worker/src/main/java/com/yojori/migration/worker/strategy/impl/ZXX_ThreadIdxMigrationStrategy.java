@@ -1,13 +1,12 @@
 package com.yojori.migration.worker.strategy.impl;
 
-import com.yojori.db.query.Select;
-import com.yojori.migration.worker.model.*;
-import com.yojori.migration.worker.strategy.AbstractMigrationStrategy;
-import com.yojori.util.StringUtil;
-import org.springframework.stereotype.Component;
-
 import java.math.BigInteger;
-import java.sql.*;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
+import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -15,7 +14,17 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+
+import org.springframework.stereotype.Component;
+
+import com.yojori.db.query.Select;
+import com.yojori.migration.worker.strategy.AbstractMigrationStrategy;
 import com.yojori.migration.worker.strategy.ProgressListener;
+import com.yojori.model.InsertSql;
+import com.yojori.model.InsertTable;
+import com.yojori.model.MigrationList;
+import com.yojori.model.MigrationSchema;
+import com.yojori.util.StringUtil;
 
 @Component("THREAD_IDX_LEGACY")
 public class ZXX_ThreadIdxMigrationStrategy extends AbstractMigrationStrategy {
@@ -117,11 +126,12 @@ public class ZXX_ThreadIdxMigrationStrategy extends AbstractMigrationStrategy {
              return;
         }
 
-        // 3. 스레드 설정
+        // 3. Thread configuration
         int threadCount = workList.getThread_count();
         if (threadCount <= 0) threadCount = 1;
 
-        prepareTargetTable(schema);
+        // Truncate is now handled by Abstract prepare() call in Executor
+        // prepareTargetTable(schema);
 
         // 4. 범위 계산 및 작업 제출
         BigInteger totalRows = maxBi.subtract(minBi).add(BigInteger.ONE);
@@ -172,32 +182,6 @@ public class ZXX_ThreadIdxMigrationStrategy extends AbstractMigrationStrategy {
         logEnd(workList.getMig_name(), System.currentTimeMillis());
     }
     
-    private void prepareTargetTable(MigrationSchema schema) throws SQLException {
-        Connection targetConn = null;
-        try {
-             targetConn = dynamicDataSource.getConnection(schema.getTarget());
-             List<InsertTable> tables = schema.getInsertTableList();
-             if (tables != null && !tables.isEmpty()) {
-                 for (InsertTable t : tables) {
-                     if ("Y".equalsIgnoreCase(t.getTruncate_yn())) {
-                         log.info("Truncating Table: {}", t.getTarget_table());
-                         executeTruncate(targetConn, t.getTarget_table());
-                     }
-                 }
-             } else {
-                 if (schema.getInsertSqlList() != null) {
-                     for (InsertSql s : schema.getInsertSqlList()) {
-                        if ("Y".equalsIgnoreCase(s.getTruncate_yn())) {
-                             log.info("Truncating Table: {}", s.getInsert_table());
-                             executeTruncate(targetConn, s.getInsert_table());
-                        }
-                     }
-                 }
-             }
-        } finally {
-            closeResources(null, null, targetConn);
-        }
-    }
 
     private void processRange(int threadNum, BigInteger startBi, BigInteger endBi, String pkCol, String tableName, MigrationSchema schema, MigrationList workList, AtomicInteger totalProcessed, boolean isNumeric) {
         Connection sourceConn = null;

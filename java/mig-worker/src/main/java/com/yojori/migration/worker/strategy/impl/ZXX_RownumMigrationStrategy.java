@@ -1,12 +1,10 @@
 package com.yojori.migration.worker.strategy.impl;
 
-import com.yojori.db.query.Select;
-import com.yojori.migration.worker.model.*;
-import com.yojori.migration.worker.strategy.AbstractMigrationStrategy;
-import com.yojori.util.StringUtil;
-import org.springframework.stereotype.Component;
-
-import java.sql.*;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -15,7 +13,17 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+
+import org.springframework.stereotype.Component;
+
+import com.yojori.migration.worker.strategy.AbstractMigrationStrategy;
 import com.yojori.migration.worker.strategy.ProgressListener;
+import com.yojori.model.DBConnMaster;
+import com.yojori.model.InsertSql;
+import com.yojori.model.InsertTable;
+import com.yojori.model.MigrationList;
+import com.yojori.model.MigrationSchema;
+import com.yojori.util.StringUtil;
 
 @Component("THREAD_MULTI_ROWNUM") // Deprecated
 public class ZXX_RownumMigrationStrategy extends AbstractMigrationStrategy {
@@ -85,11 +93,12 @@ public class ZXX_RownumMigrationStrategy extends AbstractMigrationStrategy {
 
         log.info("Fetched {} chunk keys for processing.", chunkKeys.size());
 
-        // 3. 스레드 설정
+        // 3. Thread configuration
         int threadCount = workList.getThread_count();
         if (threadCount <= 0) threadCount = 1;
 
-        prepareTargetTable(schema);
+        // Truncate is now handled by Abstract prepare()
+        // prepareTargetTable(schema);
 
         ExecutorService executor = Executors.newFixedThreadPool(threadCount);
         AtomicInteger totalProcessed = new AtomicInteger(0);
@@ -285,30 +294,4 @@ public class ZXX_RownumMigrationStrategy extends AbstractMigrationStrategy {
     
     // Duplicate helper just to be safe or Refactor to Abstract if possible. 
     // Assuming prepareTargetTable is same as others.
-    private void prepareTargetTable(MigrationSchema schema) throws SQLException {
-        Connection targetConn = null;
-        try {
-             targetConn = dynamicDataSource.getConnection(schema.getTarget());
-             List<InsertTable> tables = schema.getInsertTableList();
-             if (tables != null && !tables.isEmpty()) {
-                 for (InsertTable t : tables) {
-                     if ("Y".equalsIgnoreCase(t.getTruncate_yn())) {
-                         log.info("Truncating Table: {}", t.getTarget_table());
-                         executeTruncate(targetConn, t.getTarget_table());
-                     }
-                 }
-             } else {
-                 if (schema.getInsertSqlList() != null) {
-                     for (InsertSql s : schema.getInsertSqlList()) {
-                        if ("Y".equalsIgnoreCase(s.getTruncate_yn())) {
-                             log.info("Truncating Table: {}", s.getInsert_table());
-                             executeTruncate(targetConn, s.getInsert_table());
-                        }
-                     }
-                 }
-             }
-        } finally {
-            closeResources(null, null, targetConn);
-        }
-    }
 }

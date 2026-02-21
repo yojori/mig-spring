@@ -1,10 +1,11 @@
 package com.yojori.migration.worker.strategy.impl;
 
-import com.yojori.migration.worker.model.MigrationList;
-import com.yojori.migration.worker.model.MigrationSchema;
-import com.yojori.migration.worker.strategy.ProgressListener;
-import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import org.junit.jupiter.api.Test;
+
+import com.yojori.migration.worker.strategy.ProgressListener;
+import com.yojori.model.MigrationList;
+import com.yojori.model.MigrationSchema;
 
 public class JavaMigrationStrategyTest {
 
@@ -34,9 +35,7 @@ public class JavaMigrationStrategyTest {
         workList.setParam_string("com.yojori.migration.worker.strategy.impl.JavaMigrationStrategyTest#targetMethod");
 
         MigrationSchema schema = new MigrationSchema();
-        ProgressListener listener = new ProgressListener() {
-            @Override
-            public void onProgress(long readCount, long procCount) {}
+        ProgressListener listener = (long readCount, long procCount) -> {
         };
 
         wasCalled = false;
@@ -59,17 +58,15 @@ public class JavaMigrationStrategyTest {
         
         // Setup schema with InsertSql
         MigrationSchema schema = new MigrationSchema();
-        com.yojori.migration.worker.model.InsertSql insertSql = new com.yojori.migration.worker.model.InsertSql();
+        com.yojori.model.InsertSql insertSql = new com.yojori.model.InsertSql();
         insertSql.setInsert_table("com.yojori.migration.worker.strategy.impl.JavaMigrationStrategyTest");
         insertSql.setPk_column("targetMethod");
         
-        java.util.List<com.yojori.migration.worker.model.InsertSql> sqlList = new java.util.ArrayList<>();
+        java.util.List<com.yojori.model.InsertSql> sqlList = new java.util.ArrayList<>();
         sqlList.add(insertSql);
         schema.setInsertSqlList(sqlList);
 
-        ProgressListener listener = new ProgressListener() {
-            @Override
-            public void onProgress(long readCount, long procCount) {}
+        ProgressListener listener = (long readCount, long procCount) -> {
         };
 
         wasCalled = false;

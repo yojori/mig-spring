@@ -1,4 +1,4 @@
-package com.yojori.migration.controller.model;
+package com.yojori.model;
 
 public class DBConnMaster extends Search {
     private String master_code;
@@ -6,7 +6,7 @@ public class DBConnMaster extends Search {
     private String db_type;
     private String db_alias;
 
-    // Exteded fields for Worker connection
+    // Extended fields for connection details
     private String driverClass;
     private String jdbcUrl;
     private String username;

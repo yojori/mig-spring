@@ -8,12 +8,17 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-import com.yojori.migration.worker.client.WorkerClient;
-import com.yojori.migration.worker.model.*;
-import com.yojori.migration.worker.strategy.AbstractMigrationStrategy;
-import com.yojori.migration.worker.strategy.ProgressListener;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+
+import com.yojori.migration.worker.client.WorkerClient;
+import com.yojori.migration.worker.strategy.AbstractMigrationStrategy;
+import com.yojori.migration.worker.strategy.ProgressListener;
+import com.yojori.model.DBConnMaster;
+import com.yojori.model.InsertSql;
+import com.yojori.model.InsertTable;
+import com.yojori.model.MigrationList;
+import com.yojori.model.MigrationSchema;
 
 @Component("JAVA")
 public class JavaMigrationStrategy extends AbstractMigrationStrategy {
@@ -318,9 +323,9 @@ public class JavaMigrationStrategy extends AbstractMigrationStrategy {
     
     private Connection getConnection(String dbAlias) throws SQLException {
         if (dbAlias == null) throw new SQLException("DB Alias is null");
-        java.util.List<com.yojori.migration.worker.model.DBConnMaster> connections = workerClient.getDBConnections();
+        java.util.List<com.yojori.model.DBConnMaster> connections = workerClient.getDBConnections();
         if (connections != null) {
-            for (com.yojori.migration.worker.model.DBConnMaster db : connections) {
+            for (com.yojori.model.DBConnMaster db : connections) {
                 if (dbAlias.equals(db.getMaster_code())) return dynamicDataSource.getConnection(db);
             }
         }
@@ -329,7 +334,7 @@ public class JavaMigrationStrategy extends AbstractMigrationStrategy {
 
     private void executeLegacyMethods(MigrationSchema schema, MigrationList workList) throws Exception {
         if (schema.getInsertSqlList() != null && !schema.getInsertSqlList().isEmpty()) {
-            for(com.yojori.migration.worker.model.InsertSql insertSql : schema.getInsertSqlList()) {
+            for(InsertSql insertSql : schema.getInsertSqlList()) {
                  executeMethod(insertSql.getInsert_table(), insertSql.getPk_column(), schema, workList, insertSql, null);
             }
         } else if (workList.getParam_string() != null && !workList.getParam_string().isEmpty()) {
@@ -340,7 +345,7 @@ public class JavaMigrationStrategy extends AbstractMigrationStrategy {
         }
 
         if (schema.getInsertTableList() != null && !schema.getInsertTableList().isEmpty()) {
-            for(com.yojori.migration.worker.model.InsertTable insertTable : schema.getInsertTableList()) {
+            for(InsertTable insertTable : schema.getInsertTableList()) {
                 String className = insertTable.getSource_table();
                 String methodName = insertTable.getSource_pk();
                 if (className != null && !className.isEmpty() && methodName != null && !methodName.isEmpty()) {
