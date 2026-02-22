@@ -3,7 +3,7 @@ set "WORKER_ID=%~1"
 
 echo Building Migration Common...
 cd java\mig-common
-call mvn install
+call mvn clean install -DskipTests
 if %errorlevel% neq 0 (
     echo.
     echo MIGRATION-COMMON BUILD FAILED.
@@ -12,6 +12,14 @@ if %errorlevel% neq 0 (
 )
 
 cd ..\mig-worker
+echo Building Migration Worker...
+call mvn clean compile -DskipTests
+if %errorlevel% neq 0 (
+    echo.
+    echo MIGRATION-WORKER BUILD FAILED.
+    pause
+    exit /b %errorlevel%
+)
 
 if "%WORKER_ID%"=="" (
     echo Starting Migration Worker [Default ID]...
@@ -23,7 +31,7 @@ if "%WORKER_ID%"=="" (
 
 if %errorlevel% neq 0 (
     echo.
-    echo BUILD FAILED. Please ensure Maven is installed and in your PATH.
+    echo RUN FAILED.
     pause
     exit /b %errorlevel%
 )
