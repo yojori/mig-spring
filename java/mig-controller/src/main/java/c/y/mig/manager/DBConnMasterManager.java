@@ -5,8 +5,6 @@ import c.y.mig.db.query.*;
 import c.y.mig.model.DBConnMaster;
 import c.y.mig.model.MigrationList;
 import c.y.mig.model.MigrationSchema;
-import c.y.mig.model.Search;
-import c.y.mig.util.StringUtil;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -182,7 +180,7 @@ public class DBConnMasterManager extends Manager {
             sql.addField("user_pswd", master.getPassword());
             sql.addField("update_date", master.getUpdate_date());
             sql.addFrom(DB_MASTER);
-            sql.addWhere("master_code = ", master.getMaster_code());
+            sql.addWhere("master_code = ?", master.getMaster_code());
 
             con = DBManager.getConnection();
             stmt = con.prepareStatement(sql.toQuery());

@@ -1,4 +1,4 @@
-package com.yojori.migration.controller;
+package c.y.mig.controller;
 
 import java.sql.PreparedStatement;
 import java.sql.SQLException;

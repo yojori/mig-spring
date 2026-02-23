@@ -116,7 +116,7 @@ public class InsertSqlManager extends Manager {
             sql.addField("truncate_yn", table.getTruncate_yn());
 
             sql.addFrom(INSERT_SQL);
-            sql.addWhere("insert_sql_seq = ", table.getInsert_sql_seq());
+            sql.addWhere("insert_sql_seq = ?", table.getInsert_sql_seq());
 
             con = DBManager.getConnection();
             stmt = con.prepareStatement(sql.toQuery());
@@ -198,24 +198,6 @@ public class InsertSqlManager extends Manager {
         return rtn;
     }
 
-    private String getRownum1Sql(String sql_string, String dbType) {
-        String rtn = "";
-        if("mysql".equals(dbType)) {
-            rtn = sql_string + " Limit 0, 1";
-        } else if("maria".equals(dbType)) {
-            rtn = sql_string + " Limit 1 OFFSET 0";
-        } else if("mssql".equals(dbType)) {
-            String temp = sql_string.toUpperCase();
-            int idx = temp.lastIndexOf("ORDER BY");
-            if(idx > 0) rtn = "SELECT TOP 1 A.* FROM ( " + sql_string.substring(0, idx) + " ) A";
-            else rtn = "SELECT TOP 1 A.* FROM ( " + sql_string + " ) A";
-        } else if("oracle".equals(dbType)) {
-            rtn = "SELECT * FROM ( " + sql_string + " ) WHERE  ROWNUM = 1";
-        } else if("postgresql".equals(dbType)) {
-             rtn = sql_string + " Limit 1 OFFSET 0";
-        }
-        return rtn;
-    }
 
     public void goDelete(InsertSql search) {
          Connection con = null;

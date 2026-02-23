@@ -34,25 +34,13 @@ public class Update extends Query {
             }
         }
 
-        sql.append(getWhereClause());
+        if (!getWhere().isEmpty()) {
+            sql.append("\n WHERE ")
+               .append(getWhereClause());
+        }
 
         log.info(sql.toString());
 
         return sql.toString();
-    }
-
-    public StringBuilder getWhereClause() {
-        StringBuilder sql = new StringBuilder().append("Where \n");
-
-        int i = 0;
-        for (String field : getWhere()) {
-            if (i == 0)
-                sql.append(field).append(" ? \n");
-            else
-                sql.append(" AND ").append(field).append(" ? \n");
-            i++;
-        }
-
-        return sql;
     }
 }

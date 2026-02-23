@@ -119,7 +119,7 @@ public class InsertColumnManager extends Manager {
             sql.addField("update_date", table.getUpdate_date());
 
             sql.addFrom(INSERT_COLUMN);
-            sql.addWhere("insert_column_seq = ", table.getInsert_column_seq());
+            sql.addWhere("insert_column_seq = ?", table.getInsert_column_seq());
 
             con = DBManager.getConnection();
             stmt = con.prepareStatement(sql.toQuery());

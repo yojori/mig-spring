@@ -3,7 +3,6 @@ package c.y.mig.manager;
 import c.y.mig.db.DBManager;
 import c.y.mig.db.query.*;
 import c.y.mig.model.InsertTable;
-import c.y.mig.model.Search;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -175,7 +174,7 @@ public class InsertTableManager extends Manager {
             sql.addField("truncate_yn", master.getTruncate_yn());
             sql.addField("update_date", master.getUpdate_date());
             sql.addFrom(INSERT_TABLE);
-            sql.addWhere("insert_table_seq = ", master.getInsert_table_seq());
+            sql.addWhere("insert_table_seq = ?", master.getInsert_table_seq());
 
             con = DBManager.getConnection();
             stmt = con.prepareStatement(sql.toQuery());

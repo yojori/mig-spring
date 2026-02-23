@@ -10,8 +10,10 @@
 
     if ("update".equals(master.getMode()) && master.getMig_list_seq() != null) {
         master = manager.find(master);
+        master.setMode("update");
     } else {
         // 등록 시 기본값 설정
+        master.setMode("insert");
         master.setThread_use_yn("N");
         master.setThread_count(10);
         master.setPage_count_per_thread(10000);

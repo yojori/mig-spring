@@ -3,7 +3,6 @@ package c.y.mig.manager;
 import c.y.mig.db.DBManager;
 import c.y.mig.db.query.*;
 import c.y.mig.model.MigrationMaster;
-import c.y.mig.model.Search;
 import c.y.mig.util.StringUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -174,7 +173,7 @@ public class MigrationMasterManager extends Manager {
             sql.addField("ordering", master.getOrdering());
 
             sql.addFrom(MIGRATION_MASTER);
-            sql.addWhere("master_code = ", master.getMaster_code());
+            sql.addWhere("master_code = ?", master.getMaster_code());
 
             con = DBManager.getConnection();
             stmt = con.prepareStatement(sql.toQuery());

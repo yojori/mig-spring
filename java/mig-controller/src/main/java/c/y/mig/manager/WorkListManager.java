@@ -205,7 +205,7 @@ public class WorkListManager extends Manager {
             // param_string is usually set at insert, but no harm allowing update if needed (omitting for now)
 
             sql.addFrom(WORK_LIST);
-            sql.addWhere("work_seq = ", table.getWork_seq());
+            sql.addWhere("work_seq = ?", table.getWork_seq());
 
             con = DBManager.getConnection();
             stmt = con.prepareStatement(sql.toQuery());

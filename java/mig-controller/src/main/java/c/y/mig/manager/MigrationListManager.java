@@ -6,12 +6,8 @@ import c.y.mig.db.query.Select;
 import c.y.mig.db.query.Update;
 import c.y.mig.model.MigrationList;
 import c.y.mig.model.InsertTable;
-import c.y.mig.model.InsertSql;
-import c.y.mig.model.InsertColumn;
-import c.y.mig.model.SelectColumn;
 import c.y.mig.model.DBConnMaster;
 import c.y.mig.util.StringUtil;
-import c.y.mig.util.Config;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -23,7 +19,6 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Date;
 
 public class MigrationListManager extends Manager {
 
@@ -320,7 +315,7 @@ public class MigrationListManager extends Manager {
             sql.addField("update_date", master.getUpdate_date());
             sql.addField("display_yn", master.getDisplay_yn());
             sql.addFrom(MIGRATION_LIST);
-            sql.addWhere("mig_list_seq = ", master.getMig_list_seq());
+            sql.addWhere("mig_list_seq = ?", master.getMig_list_seq());
 
             con = DBManager.getConnection();
             stmt = con.prepareStatement(sql.toQuery());
@@ -339,7 +334,6 @@ public class MigrationListManager extends Manager {
 
     // Simplified/Restored tableCreate for legacy support
     public void tableCreate(List<InsertTable> list) {
-        long startTime = System.currentTimeMillis();
         log.info("tableCreate Start");
 
         Connection sourceConn = null;
@@ -454,222 +448,5 @@ public class MigrationListManager extends Manager {
         }
     }
 
-    private String getRownum1Sql(String sql_string, String dbType) {
-        String rtn = "";
-        if ("mysql".equals(dbType)) {
-            rtn = sql_string + " Limit 0, 1";
-        } else if ("maria".equals(dbType)) {
-            rtn = sql_string + " Limit 1 OFFSET 0";
-        } else if ("mssql".equals(dbType)) {
-            String temp = sql_string.toUpperCase();
-            int idx = temp.lastIndexOf("ORDER BY");
-            if (idx > 0) {
-                rtn = "SELECT TOP 1 A.* FROM ( " + sql_string.substring(0, idx) + " ) A";
-            } else {
-                rtn = "SELECT TOP 1 A.* FROM ( " + sql_string + " ) A";
-            }
-        } else if ("oracle".equals(dbType)) {
-            rtn = "SELECT * FROM ( " + sql_string + " ) WHERE  ROWNUM = 1";
-        } else if ("postgresql".equals(dbType)) {
-            rtn = sql_string + " Limit 1 OFFSET 0";
-        }
-        return rtn;
-    }
-    
-    // Simplistic Type Map based on legacy Manager.java (Hardcoded for now as quick fix)
-    private Map<String, String> getTypeMap(String dbType) {
-        java.util.Map<String, String> typeMap = new java.util.HashMap<>();
-        // Populate standard types (truncated list for brevity, focusing on common types)
-        typeMap.put("12_oracle", "VARCHAR2"); typeMap.put("12_mysql", "VARCHAR"); typeMap.put("12_maria", "VARCHAR"); typeMap.put("12_mssql", "VARCHAR");
-        typeMap.put("4_oracle", "NUMBER"); typeMap.put("4_mysql", "INT"); typeMap.put("4_maria", "INT"); typeMap.put("4_mssql", "INT");
-        typeMap.put("-5_oracle", "NUMBER"); typeMap.put("-5_mysql", "BIGINT"); typeMap.put("-5_maria", "BIGINT"); typeMap.put("-5_mssql", "BIGINT");
-        typeMap.put("93_oracle", "TIMESTAMP"); typeMap.put("93_mysql", "TIMESTAMP"); typeMap.put("93_maria", "TIMESTAMP"); typeMap.put("93_mssql", "DATETIME");
-        typeMap.put("91_oracle", "DATE"); typeMap.put("91_mysql", "DATE"); typeMap.put("91_maria", "DATE"); typeMap.put("91_mssql", "DATE");
-        
-        // PostgreSQL mappings
-        typeMap.put("12_postgresql", "VARCHAR");
-        typeMap.put("4_postgresql", "INTEGER");
-        typeMap.put("-5_postgresql", "BIGINT");
-        typeMap.put("93_postgresql", "TIMESTAMP");
-        typeMap.put("91_postgresql", "DATE");
-        // Add more as needed or move to Manager.java properly if this list is incomplete for user's DB
-        return typeMap;
-    }
-
-    public void autoRegisterColumns(MigrationList ml) {
-        log.info("Auto-registering columns for: " + ml.getMig_list_seq() + " (" + ml.getMig_type() + ")");
-        
-        Connection sourceConn = null;
-        PreparedStatement stmt = null;
-        ResultSet rs = null;
-
-        try {
-            DBConnMasterManager dbm_local = new DBConnMasterManager();
-            DBConnMaster sourceMasterKey = new DBConnMaster();
-            sourceMasterKey.setMaster_code(ml.getSource_db_alias());
-            DBConnMaster sourceMaster = dbm_local.find(sourceMasterKey);
-            sourceConn = DBManager.getConnection(sourceMaster);
-            
-            String baseQuery = "";
-            if ("TABLE".equals(ml.getMig_type())) {
-                // For TABLE type, we need to find the InsertTable entry to know the source table
-                InsertTableManager itm = new InsertTableManager();
-                InsertTable itSearch = new InsertTable();
-                itSearch.setMig_list_seq(ml.getMig_list_seq());
-                List<InsertTable> itList = itm.getList(itSearch, InterfaceManager.LIST);
-                if (itList != null && !itList.isEmpty()) {
-                    baseQuery = "SELECT * FROM " + itList.get(0).getSource_table();
-                } else {
-                    log.warn("No InsertTable found for TABLE type migration: " + ml.getMig_list_seq());
-                    return;
-                }
-            } else {
-                baseQuery = ml.getSql_string();
-            }
-
-            if (StringUtil.empty(baseQuery)) {
-                log.warn("Base query is empty for autoRegisterColumns. Task: " + ml.getMig_list_seq());
-                return;
-            }
-
-            String sql = getRownum1Sql(baseQuery, ml.getSource_db_type());
-            log.info("Executing metadata query: " + sql);
-            
-            stmt = sourceConn.prepareStatement(sql);
-            rs = stmt.executeQuery();
-            ResultSetMetaData meta = rs.getMetaData();
-            int columnCount = meta.getColumnCount();
-
-            // 1. Register Select Columns
-            SelectColumnManager scm = new SelectColumnManager();
-            // Optional: Clear existing columns? Usually okay for new registrations.
-            
-            for (int i = 1; i <= columnCount; i++) {
-                SelectColumn col = new SelectColumn();
-                col.setColumn_seq(Config.getOrdNoSequence("SC"));
-                col.setMig_list_seq(ml.getMig_list_seq());
-                col.setColumn_name(meta.getColumnLabel(i).toUpperCase());
-                col.setColumn_type(meta.getColumnTypeName(i));
-                col.setCreate_date(new Date());
-                col.setUpdate_date(new Date());
-                col.setOrdering(i * 10);
-                scm.insert(col);
-            }
-
-            // 2. Register Insert Sql & Columns (One per TABLE or SQL type by default)
-            InsertSqlManager ism = new InsertSqlManager();
-            InsertColumnManager icm = new InsertColumnManager();
-            
-            String insertTableName = "";
-            if ("TABLE".equals(ml.getMig_type())) {
-                 InsertTableManager itm = new InsertTableManager();
-                 InsertTable itSearch = new InsertTable();
-                 itSearch.setMig_list_seq(ml.getMig_list_seq());
-                 List<InsertTable> itList = itm.getList(itSearch, InterfaceManager.LIST);
-                 if (itList != null && !itList.isEmpty()) {
-                     insertTableName = itList.get(0).getTarget_table();
-                 }
-            }
-            
-            if (StringUtil.empty(insertTableName)) {
-                insertTableName = "TARGET_TABLE_PLACEHOLDER";
-            }
-
-            InsertSql is = new InsertSql();
-            String insertSqlSeq = Config.getOrdNoSequence("IS");
-            is.setInsert_sql_seq(insertSqlSeq);
-            is.setMig_list_seq(ml.getMig_list_seq());
-            is.setInsert_type("INSERT");
-            is.setInsert_table(insertTableName);
-            is.setOrdering(10);
-            is.setCreate_date(new Date());
-            is.setUpdate_date(new Date());
-            is.setTruncate_yn("N");
-            ism.insert(is);
-
-            for (int i = 1; i <= columnCount; i++) {
-                InsertColumn col = new InsertColumn();
-                col.setInsert_column_seq(Config.getOrdNoSequence("IC"));
-                col.setInsert_sql_seq(insertSqlSeq);
-                col.setColumn_name(meta.getColumnLabel(i).toUpperCase());
-                col.setColumn_type(meta.getColumnTypeName(i));
-                col.setInsert_data(meta.getColumnLabel(i).toUpperCase());
-                col.setInsert_value("");
-                col.setCreate_date(new Date());
-                col.setUpdate_date(new Date());
-                icm.insert(col);
-            }
-
-        } catch (Exception e) {
-            log.error("Failed autoRegisterColumns for " + ml.getMig_list_seq(), e);
-        } finally {
-            DBManager.close(rs, stmt, sourceConn);
-        }
-    }
-
-    public List<String> bulkInsertTableTasks(MigrationList master, String sourceTableArea, String sourcePkArea, String targetTableArea, String truncateYn) {
-        List<String> createdSeqs = new ArrayList<String>();
-        if (StringUtil.empty(sourceTableArea)) return createdSeqs;
-
-        String[] source_table = sourceTableArea.split("\r\n");
-        String[] source_pk = (sourcePkArea != null) ? sourcePkArea.split("\r\n") : new String[0];
-        String[] target_table = (targetTableArea != null) ? targetTableArea.split("\r\n") : new String[0];
-
-        int threadCount = (master.getThread_count() <= 0) ? 1 : master.getThread_count();
-
-        for (int i = 0; i < source_table.length; i++) {
-            String sTable = source_table[i].trim();
-            if (sTable.isEmpty()) continue;
-
-            String tTable = (i < target_table.length && !target_table[i].trim().isEmpty()) ? target_table[i].trim() : sTable;
-            String sPk = (i < source_pk.length) ? source_pk[i].trim() : "";
-
-            for (int t = 0; t < threadCount; t++) {
-                MigrationList ml = new MigrationList();
-                // Copy properties from master
-                ml.setMig_master(master.getMig_master());
-                ml.setSource_db_alias(master.getSource_db_alias());
-                ml.setTarget_db_alias(master.getTarget_db_alias());
-                ml.setMig_type(master.getMig_type());
-                ml.setThread_use_yn(threadCount > 1 ? "Y" : "N");
-                ml.setThread_count(threadCount);
-                ml.setPage_count_per_thread(master.getPage_count_per_thread());
-                ml.setExecute_yn(master.getExecute_yn());
-                ml.setDisplay_yn(master.getDisplay_yn());
-                ml.setOrdering(master.getOrdering());
-                
-                String taskName = sTable;
-                if (threadCount > 1) {
-                    taskName += " (" + (t + 1) + "/" + threadCount + ")";
-                    ml.setParam_string("thread_count:" + threadCount + ";thread_idx:" + t);
-                }
-                ml.setMig_name(taskName);
-                String newSeq = Config.getOrdNoSequence("ML");
-                ml.setMig_list_seq(newSeq);
-                ml.setCreate_date(new Date());
-                ml.setUpdate_date(new Date());
-                
-                this.insert(ml);
-                
-                // Create InsertTable entry
-                InsertTableManager itm = new InsertTableManager();
-                InsertTable it = new InsertTable();
-                it.setInsert_table_seq(Config.getOrdNoSequence("IT"));
-                it.setMig_list_seq(ml.getMig_list_seq());
-                it.setSource_table(sTable);
-                it.setSource_pk(sPk);
-                it.setTarget_table(tTable);
-                it.setTruncate_yn((truncateYn != null && "Y".equals(truncateYn)) ? "Y" : "N");
-                it.setCreate_date(new Date());
-                it.setUpdate_date(new Date());
-                itm.insert(it);
-                
-                // Auto-register columns
-                this.autoRegisterColumns(ml);
-                
-                createdSeqs.add(newSeq);
-            }
-        }
-        return createdSeqs;
-    }
+    // Restored focus to core CRUD
 }

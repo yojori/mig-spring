@@ -158,8 +158,20 @@
 
                         <!-- Table Settings (Visible only for TABLE Type) -->
                         <div id="table_settings" class="col-12" style="display:none;">
-                            <div class="alert alert-info small py-2 mb-2">
-                                <i class="bi bi-info-circle-fill me-1"></i> 여러 줄 입력 시 엔터(Enter)로 구분하여 일괄 등록됩니다.
+                            <div class="row g-2 mb-3 align-items-end">
+                                <div class="col-md-4">
+                                    <label class="form-label small fw-bold">Target Strategy</label>
+                                    <select class="form-select form-select-sm" name="target_strategy" id="target_strategy" onchange="nextStep();">
+                                        <option value="NORMAL">NORMAL (일반)</option>
+                                        <option value="THREAD">THREAD (Seek Method)</option>
+                                        <option value="THREAD_IDX">THREAD_IDX (Paging)</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-8">
+                                    <div class="alert alert-info small py-2 mb-0">
+                                        <i class="bi bi-info-circle-fill me-1"></i> 여러 줄 입력 시 엔터(Enter)로 구분하여 일괄 등록됩니다.
+                                    </div>
+                                </div>
                             </div>
                             <div class="row g-2">
                                 <div class="col-md-4">
@@ -188,7 +200,7 @@
                         <button type="button" class="btn btn-outline-secondary px-4" onclick="prevStep();">
                             <i class="bi bi-arrow-left"></i> 이전
                         </button>
-                        <button type="button" class="btn btn-success px-4 fw-bold" onclick="document.frm1.submit();">
+                        <button type="button" class="btn btn-success px-4 fw-bold" onclick="if(validateStep2()) document.frm1.submit();">
                             <i class="bi bi-check-circle me-1"></i> 저장
                         </button>
                     </div>
@@ -208,13 +220,17 @@
                 name.focus();
                 return;
             }
+
+            var type = document.getElementById("mig_type").value;
             
             // Logic to show/hide sections based on type
             var type = document.getElementById("mig_type").value;
             
             // 1. Thread Settings Logic
             var threadSection = document.getElementById("thread_settings");
-            if (type.indexOf("THREAD") > -1 || type === "JAVA") { 
+            var bulkStrategy = document.getElementById("target_strategy").value;
+            
+            if (type.indexOf("THREAD") > -1 || type === "JAVA" || (type === "TABLE" && bulkStrategy.indexOf("THREAD") > -1)) { 
                 threadSection.style.display = "flex";
             } else {
                 threadSection.style.display = "none";
@@ -244,6 +260,26 @@
         function prevStep() {
             document.getElementById("step-2").style.display = "none";
             document.getElementById("step-1").style.display = "block";
+        }
+
+        function validateStep2() {
+            var type = document.getElementById("mig_type").value;
+            if (type === "TABLE" || type === "JAVA") {
+                var sAlias = document.querySelector("select[name='source_db_alias']").value;
+                var tAlias = document.querySelector("select[name='target_db_alias']").value;
+
+                if (!sAlias) {
+                    alert("Source DB Alias를 선택하세요.");
+                    document.querySelector("select[name='source_db_alias']").focus();
+                    return false;
+                }
+                if (!tAlias) {
+                    alert("Target DB Alias를 선택하세요.");
+                    document.querySelector("select[name='target_db_alias']").focus();
+                    return false;
+                }
+            }
+            return true;
         }
         
         function changeType() {

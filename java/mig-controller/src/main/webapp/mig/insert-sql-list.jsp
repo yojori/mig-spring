@@ -28,7 +28,7 @@
                 entity.setPk_column(pk_column[i]);
                 entity.setTruncate_yn("N");
 
-                if (truncate_yn != null && !"".equals(insert_sql_seq[i]) && truncate_yn[i] != null && "Y".equals(truncate_yn[i])) {
+                if (truncate_yn != null && i < truncate_yn.length && "Y".equals(truncate_yn[i])) {
                     entity.setTruncate_yn("Y");
                 }
 

@@ -53,6 +53,19 @@ public class NormalMigrationStrategy extends AbstractMigrationStrategy {
                 sqlSource = select.toQuery();
             } else if (!StringUtil.empty(workList.getSql_string())) {
                 sqlSource = workList.getSql_string();
+                
+                // If InsertTable is empty, try to get PK from InsertSql for ordering
+                List<InsertSql> sqlList = schema.getInsertSqlList();
+                if (sqlList != null && !sqlList.isEmpty()) {
+                    String pkCol = sqlList.get(0).getPk_column();
+                    if (!StringUtil.empty(pkCol)) {
+                        // Very simple check to see if we can append ORDER BY
+                        String upperSql = sqlSource.toUpperCase();
+                        if (!upperSql.contains("ORDER BY") && !upperSql.contains("GROUP BY")) {
+                            sqlSource += " ORDER BY " + pkCol;
+                        }
+                    }
+                }
             } else {
                 log.warn("No Source defined (Table or SQL)!");
                 return;

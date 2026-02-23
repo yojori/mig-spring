@@ -19,7 +19,6 @@ import c.y.mig.db.query.Update;
 import c.y.mig.model.MigrationList;
 import c.y.mig.model.SelectColumn;
 import c.y.mig.model.DBConnMaster;
-import c.y.mig.model.Search;
 import c.y.mig.util.Config;
 
 // Restored from legacy
@@ -279,7 +278,7 @@ public class SelectColumnManager extends Manager {
 			
 			sql.addFrom(SELECT_COLUMN);
 			
-			sql.addWhere("column_seq = ", selectColumn.getColumn_seq());
+			sql.addWhere("column_seq = ?", selectColumn.getColumn_seq());
 			
 			con = DBManager.getConnection();
 			
@@ -409,42 +408,5 @@ public class SelectColumnManager extends Manager {
 		return rtn;
 	}
 
-    // Ported from legacy Manager.java for completeness in this manager
-    private String getRownum1Sql(String sql_string, String dbType) {
-		String rtn = "";
-		
-		if("mysql".equals(dbType))
-		{
-			rtn = sql_string + " Limit 0, 1";
-		}
-		else if("maria".equals(dbType))
-		{
-			rtn = sql_string + " Limit 1 OFFSET 0";
-		}
-		else if("mssql".equals(dbType))
-		{
-			String temp = sql_string.toUpperCase();
-			
-			int idx = temp.lastIndexOf("ORDER BY");
-			
-			if(idx > 0)
-			{
-				rtn = "SELECT TOP 1 A.* FROM ( " + sql_string.substring(0, idx) + " ) A";
-			}
-			else
-			{
-				rtn = "SELECT TOP 1 A.* FROM ( " + sql_string + " ) A";
-			}
-		}
-		else if("oracle".equals(dbType))
-		{
-			rtn = "SELECT * FROM ( " + sql_string + " ) WHERE  ROWNUM = 1";
-		}
-		else if("postgresql".equals(dbType))
-		{
-			rtn = sql_string + " Limit 1 OFFSET 0";
-		}
-		return rtn;
-	}
 
 }

@@ -227,7 +227,19 @@ public class ThreadMigrationStrategy extends AbstractMigrationStrategy {
             }
             return select.toQuery();
         } else {
-             return workList.getSql_string();
+             String sql = workList.getSql_string();
+             // Try to find PK from InsertSql for ordering (consistent paging)
+             List<InsertSql> sqlList = schema.getInsertSqlList();
+             if (sqlList != null && !sqlList.isEmpty()) {
+                 String pkCol = sqlList.get(0).getPk_column();
+                 if (!StringUtil.empty(pkCol)) {
+                     String upperSql = sql.toUpperCase();
+                     if (!upperSql.contains("ORDER BY") && !upperSql.contains("GROUP BY")) {
+                         sql += " ORDER BY " + pkCol;
+                     }
+                 }
+             }
+             return sql;
         }
     }
 }

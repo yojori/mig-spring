@@ -13,7 +13,6 @@ import c.y.mig.manager.WorkListManager;
 import c.y.mig.model.DBConnMaster;
 import c.y.mig.model.InsertColumn;
 import c.y.mig.model.InsertSql;
-import c.y.mig.model.InsertTable;
 import c.y.mig.model.MigrationList;
 import c.y.mig.model.MigrationMaster;
 import c.y.mig.model.MigrationSchema;
@@ -106,13 +105,8 @@ public class TaskServiceImpl implements TaskService {
             migList.setParam_string(work.getParam_string());
         }
 
-        c.y.mig.manager.InsertTableManager tableManager = new c.y.mig.manager.InsertTableManager();
-        InsertTable tableSearch = new InsertTable();
-        tableSearch.setMig_list_seq(migListSeq);
-        tableSearch.setPageSize(99999);
-        List<InsertTable> tList = tableManager.getList(tableSearch, c.y.mig.manager.InterfaceManager.LIST);
-        log.info("DEBUG: TaskServiceImpl fetched InsertTableList size: " + (tList != null ? tList.size() : "null") + " for migListSeq: " + migListSeq);
-        schema.setInsertTableList(tList);
+        // InsertTable is no longer used. Returning empty list for worker schema compatibility.
+        schema.setInsertTableList(new ArrayList<>());
 
         c.y.mig.manager.InsertSqlManager sqlManager = new c.y.mig.manager.InsertSqlManager();
         InsertSql sqlSearch = new InsertSql();
