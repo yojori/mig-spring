@@ -9,9 +9,9 @@ public class Insert extends Query {
     public String toQuery() {
 
         StringBuilder sql = new StringBuilder(1024);
-        sql.append("\nINSERT INTO ")
+        sql.append("INSERT INTO ")
            .append(getFromClause())
-           .append("\n ( ");
+           .append(" (");
 
         int listSize = getField().size();
         for (int i = 0; i < listSize; i++) {
@@ -22,7 +22,7 @@ public class Insert extends Query {
             }
         }
 
-        sql.append("\n	) values ( ");
+        sql.append(") VALUES (");
 
         Object o = null;
         for (int i = 0; i < listSize; i++) {
@@ -36,14 +36,14 @@ public class Insert extends Query {
                 }
             } else {
                 if (i == 0) {
-                    sql.append(" ? ");
+                    sql.append("?");
                 } else {
-                    sql.append(", ? ");
+                    sql.append(", ?");
                 }
             }
         }
 
-        sql.append("	) \n");
+        sql.append(")");
 
         log.info(sql.toString());
 

@@ -104,8 +104,20 @@ public class ThreadMigrationStrategy extends AbstractMigrationStrategy {
             
             List<InsertSql> sqlList = schema.getInsertSqlList();
             targetPstmts = new PreparedStatement[sqlList.size()];
+            List<List<c.y.mig.model.InsertColumn>> filteredColumnsList = new java.util.ArrayList<>();
+            List<c.y.mig.model.InsertColumn> allColumns = schema.getInsertColumnList();
+
             for (int i = 0; i < sqlList.size(); i++) {
-                String query = buildTargetQuery(sqlList.get(i), schema.getInsertColumnList());
+                InsertSql iSql = sqlList.get(i);
+                List<c.y.mig.model.InsertColumn> filtered = new java.util.ArrayList<>();
+                for (c.y.mig.model.InsertColumn col : allColumns) {
+                    if (iSql.getInsert_sql_seq().equals(col.getInsert_sql_seq())) {
+                        filtered.add(col);
+                    }
+                }
+                filteredColumnsList.add(filtered);
+                
+                String query = buildTargetQuery(iSql, filtered, schema.getTarget().getDb_type());
                 if (query != null) {
                     targetPstmts[i] = targetConn.prepareStatement(query);
                 }
@@ -159,23 +171,30 @@ public class ThreadMigrationStrategy extends AbstractMigrationStrategy {
                 ResultSetMetaData meta = sourceRs.getMetaData();
                 int colCount = meta.getColumnCount();
                 
+                // [Optimization] Cache column names outside row loop
+                String[] colNames = new String[colCount];
+                for (int i = 1; i <= colCount; i++) {
+                    colNames[i-1] = meta.getColumnName(i).toUpperCase();
+                }
+
                 int rowCount = 0;
                 while (sourceRs.next()) {
                     // Map row data
                     Map<String, Object> row = new HashMap<>();
-                    for (int i = 1; i <= colCount; i++) {
-                        String colName = meta.getColumnName(i).toUpperCase();
-                        row.put(colName, sourceRs.getObject(i));
+                    for (int i = 1; i <= colNames.length; i++) {
+                        row.put(colNames[i-1], sourceRs.getObject(i));
                     }
 
                     // Add to batch
                     for (int i = 0; i < sqlList.size(); i++) {
                         if (targetPstmts[i] == null) continue;
-                        setTargetParams(targetPstmts[i], sqlList.get(i), schema.getInsertColumnList(), row);
+                        setTargetParams(targetPstmts[i], sqlList.get(i), filteredColumnsList.get(i), row);
                         targetPstmts[i].addBatch();
                     }
                     rowCount++;
                 }
+                long endFetchTime = System.currentTimeMillis();
+                long fetchDuration = endFetchTime - stepStartTime;
                 
                 // Close source resources early for this page (Keep Connection Open)
                 try { if (sourceRs != null) sourceRs.close(); } catch (Exception e) {}
@@ -189,17 +208,18 @@ public class ThreadMigrationStrategy extends AbstractMigrationStrategy {
                 totalRead.addAndGet(rowCount);
 
                 // Execute Batch
+                long startWrite = System.currentTimeMillis();
                 executeBatch(targetPstmts);
                 targetConn.commit();
+                long writeDuration = System.currentTimeMillis() - startWrite;
                 
                 totalProcessed.addAndGet(rowCount);
                 
                 long stepEndTime = System.currentTimeMillis();
-                double stepSeconds = (stepEndTime - stepStartTime) / 1000.0;
                 double totalSeconds = (stepEndTime - threadStartTime) / 1000.0;
                 
-                log.info("Thread {} processed Page {} (Rows: {}) - One select, insert time: {} seconds, Total elapsed: {} seconds", 
-                        threadNum, currentPage, rowCount, String.format("%.3f", stepSeconds), String.format("%.3f", totalSeconds));
+                log.info("Thread {} processed Page {} (Rows: {}) - Read(Fetch): {}ms, Write(Batch): {}ms, Total: {}ms, Total elapsed: {} seconds", 
+                        threadNum, currentPage, rowCount, fetchDuration, writeDuration, (stepEndTime - stepStartTime), String.format("%.3f", totalSeconds));
 
                 // Next Page for this thread
                 loopParams++;

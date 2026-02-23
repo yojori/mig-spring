@@ -4,12 +4,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import c.y.mig.worker.service.DynamicDataSource;
 import c.y.mig.model.InsertColumn;
 import c.y.mig.model.InsertSql;
 import c.y.mig.model.InsertTable;
 import c.y.mig.model.MigrationList;
 import c.y.mig.model.MigrationSchema;
+import c.y.mig.worker.service.DynamicDataSource;
 
 public abstract class AbstractMigrationStrategy implements MigrationStrategy {
     
@@ -91,93 +91,125 @@ public abstract class AbstractMigrationStrategy implements MigrationStrategy {
         }
     }
 
-    protected String buildTargetQuery(InsertSql iSql, java.util.List<InsertColumn> columns) {
+
+    protected String buildTargetQuery(InsertSql iSql, java.util.List<InsertColumn> columns, String targetDbType) {
+        String tableName = quoteIdentifier(iSql.getInsert_table(), targetDbType);
+
+        String resultSql = null;
         if ("INSERT".equalsIgnoreCase(iSql.getInsert_type())) {
             c.y.mig.db.query.Insert insert = new c.y.mig.db.query.Insert();
-            insert.addFrom(iSql.getInsert_table());
+            insert.addFrom(tableName);
             for (InsertColumn col : columns) {
-                if (col.getInsert_sql_seq().equals(iSql.getInsert_sql_seq())) {
-                    if ("SQL_FUNC".equals(col.getInsert_data())) {
-                        String funcStr = col.getInsert_value();
-                        if (funcStr == null) funcStr = "";
-                        // Parse {COL} pattern
-                        java.util.regex.Pattern p = java.util.regex.Pattern.compile("\\{([^}]+)\\}");
-                        java.util.regex.Matcher m = p.matcher(funcStr);
-                        java.util.List<String> bindCols = new java.util.ArrayList<>();
-                        StringBuffer sb = new StringBuffer();
-                        while (m.find()) {
-                            bindCols.add(m.group(1));
-                            m.appendReplacement(sb, "?");
-                        }
-                        m.appendTail(sb);
-                        col.setSqlFuncBindCols(bindCols);
-                        insert.addField(col.getColumn_name(), sb.toString());
-                    } else {
-                        insert.addField(col.getColumn_name(), "?");
+                String colName = quoteIdentifier(col.getColumn_name(), targetDbType);
+                if ("SQL_FUNC".equals(col.getInsert_data())) {
+                    String funcStr = col.getInsert_value();
+                    if (funcStr == null) funcStr = "";
+                    java.util.regex.Pattern p = java.util.regex.Pattern.compile("\\{([^}]+)\\}");
+                    java.util.regex.Matcher m = p.matcher(funcStr);
+                    java.util.List<String> bindCols = new java.util.ArrayList<>();
+                    StringBuffer sb = new StringBuffer();
+                    while (m.find()) {
+                        bindCols.add(m.group(1));
+                        m.appendReplacement(sb, "?");
                     }
+                    m.appendTail(sb);
+                    col.setSqlFuncBindCols(bindCols);
+                    insert.addField(colName, sb.toString());
+                } else {
+                    insert.addField(colName, "?");
                 }
             }
-            return insert.toQuery();
+            resultSql = insert.toQuery();
         } else if ("UPDATE".equalsIgnoreCase(iSql.getInsert_type())) {
             c.y.mig.db.query.Update update = new c.y.mig.db.query.Update();
-            update.addFrom(iSql.getInsert_table());
+            update.addFrom(tableName);
             for (InsertColumn col : columns) {
-                if (col.getInsert_sql_seq().equals(iSql.getInsert_sql_seq())) {
-                    if (col.getColumn_name().equalsIgnoreCase(iSql.getPk_column())) {
-                        update.addWhere(col.getColumn_name() + " = ", "?");
+                String colName = quoteIdentifier(col.getColumn_name(), targetDbType);
+                if (col.getColumn_name().equalsIgnoreCase(iSql.getPk_column())) {
+                    update.addWhere(colName + " = ", "?");
+                } else {
+                    if ("SQL_FUNC".equals(col.getInsert_data())) {
+                         String funcStr = col.getInsert_value();
+                         if (funcStr == null) funcStr = "";
+                         java.util.regex.Pattern p = java.util.regex.Pattern.compile("\\{([^}]+)\\}");
+                         java.util.regex.Matcher m = p.matcher(funcStr);
+                         java.util.List<String> bindCols = new java.util.ArrayList<>();
+                         StringBuffer sb = new StringBuffer();
+                         while (m.find()) {
+                             bindCols.add(m.group(1));
+                             m.appendReplacement(sb, "?");
+                         }
+                         m.appendTail(sb);
+                         col.setSqlFuncBindCols(bindCols);
+                         update.addField(colName, sb.toString());
                     } else {
-                        if ("SQL_FUNC".equals(col.getInsert_data())) {
-                             String funcStr = col.getInsert_value();
-                             if (funcStr == null) funcStr = "";
-                             // Parse {COL} pattern
-                             java.util.regex.Pattern p = java.util.regex.Pattern.compile("\\{([^}]+)\\}");
-                             java.util.regex.Matcher m = p.matcher(funcStr);
-                             java.util.List<String> bindCols = new java.util.ArrayList<>();
-                             StringBuffer sb = new StringBuffer();
-                             while (m.find()) {
-                                 bindCols.add(m.group(1));
-                                 m.appendReplacement(sb, "?");
-                             }
-                             m.appendTail(sb);
-                             col.setSqlFuncBindCols(bindCols);
-                             update.addField(col.getColumn_name(), sb.toString());
-                        } else {
-                            update.addField(col.getColumn_name(), "?");
-                        }
+                        update.addField(colName, "?");
                     }
                 }
             }
-            return update.toQuery();
+            resultSql = update.toQuery();
         }
-        return null;
+        
+        if (resultSql != null) {
+            log.info("[TARGET_QUERY] Standardized SQL for {}: {}", targetDbType, resultSql.replace("\n", " ").replaceAll("\\s+", " "));
+        }
+        return resultSql;
+    }
+
+    protected String quoteIdentifier(String id, String dbType) {
+        if (id == null || id.trim().isEmpty()) return id;
+        
+        // Handle cases where the ID might already be quoted partially or fully
+        String trimmed = id.trim();
+        if ((trimmed.startsWith("[") && trimmed.endsWith("]")) || 
+            (trimmed.startsWith("\"") && trimmed.endsWith("\"")) || 
+            (trimmed.startsWith("`") && trimmed.endsWith("`"))) {
+            return id;
+        }
+
+        // Schema.Table format support
+        if (id.contains(".") && !id.contains("[") && !id.contains("\"")) {
+            String[] parts = id.split("\\.");
+            StringBuilder sb = new StringBuilder();
+            for (int i = 0; i < parts.length; i++) {
+                sb.append(quoteIdentifier(parts[i], dbType));
+                if (i < parts.length - 1) sb.append(".");
+            }
+            return sb.toString();
+        }
+
+        if (dbType != null && (dbType.toLowerCase().contains("mssql") || dbType.toLowerCase().contains("sqlserver"))) {
+            return "[" + id + "]";
+        }
+        // PostgreSQL, Oracle, MariaDB(backtick preferred but " is ANSI)
+        // Default to " for ANSI compatibility
+        return "\"" + id + "\"";
     }
 
     protected void setTargetParams(java.sql.PreparedStatement pstmt, InsertSql iSql, java.util.List<InsertColumn> columns, java.util.Map<String, Object> row) throws Exception {
         int pIdx = 1;
         for (InsertColumn col : columns) {
-            if (col.getInsert_sql_seq().equals(iSql.getInsert_sql_seq())) {
-                Object val = null;
-                if ("SQL_FUNC".equals(col.getInsert_data())) {
-                    if (col.getSqlFuncBindCols() != null) {
-                        for (String bindCol : col.getSqlFuncBindCols()) {
-                            Object bindVal = row.get(bindCol); 
-                            pstmt.setObject(pIdx++, bindVal);
-                        }
+            Object val = null;
+            if ("SQL_FUNC".equals(col.getInsert_data())) {
+                if (col.getSqlFuncBindCols() != null) {
+                    for (String bindCol : col.getSqlFuncBindCols()) {
+                        Object bindVal = row.get(bindCol); 
+                        pstmt.setObject(pIdx++, bindVal);
                     }
-                    continue; // Skip standard binding
-                } else if ("CURRENT_DATE".equals(col.getInsert_data())) {
-                    val = new java.sql.Date(System.currentTimeMillis());
-                } else if ("UUID".equals(col.getInsert_data())) {
-                    val = c.y.mig.util.Config.getUUID();
-                } else if ("KEY_IN_VAR".equals(col.getInsert_data())) {
-                    val = col.getInsert_value();
-                } else if ("KEY_IN_NUM".equals(col.getInsert_data())) {
-                    val = Integer.parseInt(col.getInsert_value());
-                } else {
-                    val = row.get(col.getInsert_data()); 
                 }
-                pstmt.setObject(pIdx++, val);
+                continue; // Skip standard binding
+            } else if ("CURRENT_DATE".equals(col.getInsert_data())) {
+                val = new java.sql.Date(System.currentTimeMillis());
+            } else if ("UUID".equals(col.getInsert_data())) {
+                val = c.y.mig.util.Config.getUUID();
+            } else if ("KEY_IN_VAR".equals(col.getInsert_data())) {
+                val = col.getInsert_value();
+            } else if ("KEY_IN_NUM".equals(col.getInsert_data())) {
+                val = Integer.parseInt(col.getInsert_value());
+            } else {
+                val = row.get(col.getInsert_data()); 
             }
+            pstmt.setObject(pIdx++, val);
         }
     }
 
@@ -198,5 +230,81 @@ public abstract class AbstractMigrationStrategy implements MigrationStrategy {
         try { if (rs != null) rs.close(); } catch (Exception e) {}
         try { if (stmt != null) stmt.close(); } catch (Exception e) {}
         try { if (con != null) con.close(); } catch (Exception e) {}
+    }
+
+    protected void addSeekCriteria(c.y.mig.db.query.Select select, String[] pkCols, java.util.Map<String, Object> lastRow, String dbType) {
+        if (lastRow == null || lastRow.isEmpty()) return;
+        boolean isMssql = (dbType != null && (dbType.toLowerCase().contains("mssql") || dbType.toLowerCase().contains("sqlserver")));
+        
+        if (!isMssql && pkCols.length > 1) {
+             // Standard Row Constructor: (A, B) >= (?, ?)
+             StringBuilder sb = new StringBuilder();
+             sb.append(" (");
+             for (int i = 0; i < pkCols.length; i++) {
+                 sb.append(pkCols[i]);
+                 if (i < pkCols.length - 1) sb.append(", ");
+             }
+             sb.append(") >= (");
+             for (int i = 0; i < pkCols.length; i++) {
+                 sb.append("?");
+                 if (i < pkCols.length - 1) sb.append(", ");
+             }
+             sb.append(") ");
+             select.addWhere(sb.toString(), null);
+        } else {
+            // Expansion for MSSQL or Single PK
+            // (A > ?) OR (A = ? AND B >= ?)
+            StringBuilder sb = new StringBuilder();
+            if (pkCols.length == 1) {
+                sb.append(pkCols[0]).append(" >= ?");
+            } else {
+                sb.append("(");
+                for (int i = 0; i < pkCols.length; i++) {
+                    if (i > 0) sb.append(" OR ");
+                    sb.append("(");
+                    for (int j = 0; j < i; j++) {
+                        sb.append(pkCols[j]).append(" = ? AND ");
+                    }
+                    if (i == pkCols.length - 1) {
+                        sb.append(pkCols[i]).append(" >= ?");
+                    } else {
+                        sb.append(pkCols[i]).append(" > ?");
+                    }
+                    sb.append(")");
+                }
+                sb.append(")");
+            }
+            select.addWhere(sb.toString(), null);
+        }
+    }
+
+    protected int bindSeekParams(java.sql.PreparedStatement pstmt, String[] pkCols, java.util.Map<String, Object> lastRow, int startIdx, String dbType) throws java.sql.SQLException {
+        boolean isMssql = (dbType != null && (dbType.toLowerCase().contains("mssql") || dbType.toLowerCase().contains("sqlserver")));
+        int currentParamIdx = startIdx;
+
+        if (!isMssql && pkCols.length > 1) {
+            for (String col : pkCols) {
+                pstmt.setObject(currentParamIdx++, lastRow.get(col.toUpperCase()));
+            }
+        } else {
+            for (int i = 0; i < pkCols.length; i++) {
+                for (int j = 0; j <= i; j++) {
+                    pstmt.setObject(currentParamIdx++, lastRow.get(pkCols[j].toUpperCase()));
+                }
+            }
+        }
+        return currentParamIdx;
+    }
+
+    protected String applyLimit(String baseQuery, int limit, String dbType) {
+        if (c.y.mig.util.StringUtil.empty(dbType)) return baseQuery + " LIMIT " + limit;
+        String upperType = dbType.toUpperCase();
+        if (upperType.contains("ORACLE")) {
+            return "SELECT * FROM ( " + baseQuery + " ) WHERE ROWNUM <= " + limit;
+        } else if (upperType.contains("MSSQL") || upperType.contains("SQLSERVER")) {
+            return "SELECT TOP " + limit + " * FROM ( " + baseQuery + " ) SUB_LIMIT";
+        } else {
+            return baseQuery + " LIMIT " + limit;
+        }
     }
 }

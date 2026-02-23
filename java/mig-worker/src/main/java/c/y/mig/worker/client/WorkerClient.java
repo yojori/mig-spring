@@ -7,6 +7,10 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
 
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.MediaType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -30,7 +34,16 @@ public class WorkerClient {
     }
 
     public MigrationSchema getTaskConfig(String taskId) {
-        return restTemplate.getForObject(controllerUrl + "/task/" + taskId + "/config", MigrationSchema.class);
+        HttpHeaders headers = new HttpHeaders();
+        headers.setAccept(java.util.Collections.singletonList(MediaType.APPLICATION_JSON));
+        HttpEntity<String> entity = new HttpEntity<>(headers);
+        
+        return restTemplate.exchange(
+                controllerUrl + "/task/" + taskId + "/config",
+                HttpMethod.GET,
+                entity,
+                MigrationSchema.class
+        ).getBody();
     }
 
     public void updateStatus(WorkerStatus status) {
@@ -52,11 +65,15 @@ public class WorkerClient {
 
     public java.util.List<c.y.mig.model.DBConnMaster> getDBConnections() {
         try {
+            HttpHeaders headers = new HttpHeaders();
+            headers.setAccept(java.util.Collections.singletonList(MediaType.APPLICATION_JSON));
+            HttpEntity<Void> entity = new HttpEntity<>(headers);
+
             org.springframework.core.ParameterizedTypeReference<java.util.List<c.y.mig.model.DBConnMaster>> responseType =
                     new org.springframework.core.ParameterizedTypeReference<java.util.List<c.y.mig.model.DBConnMaster>>() {};
             
             org.springframework.http.ResponseEntity<java.util.List<c.y.mig.model.DBConnMaster>> response =
-                    restTemplate.exchange(controllerUrl + "/db-connections", org.springframework.http.HttpMethod.GET, null, responseType);
+                    restTemplate.exchange(controllerUrl + "/db-connections", HttpMethod.GET, entity, responseType);
             
             return response.getBody();
         } catch (Exception e) {

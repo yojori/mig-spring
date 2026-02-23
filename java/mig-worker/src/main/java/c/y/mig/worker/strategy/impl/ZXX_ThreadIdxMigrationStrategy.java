@@ -200,7 +200,7 @@ public class ZXX_ThreadIdxMigrationStrategy extends AbstractMigrationStrategy {
             List<InsertSql> sqlList = schema.getInsertSqlList();
             targetPstmts = new PreparedStatement[sqlList.size()];
             for (int i = 0; i < sqlList.size(); i++) {
-                String query = buildTargetQuery(sqlList.get(i), schema.getInsertColumnList());
+                String query = buildTargetQuery(sqlList.get(i), schema.getInsertColumnList(), schema.getTarget().getDb_type());
                 if (query != null) {
                     targetPstmts[i] = targetConn.prepareStatement(query);
                 }

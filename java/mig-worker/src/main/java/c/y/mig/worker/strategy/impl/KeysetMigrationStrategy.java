@@ -18,6 +18,7 @@ import org.springframework.stereotype.Component;
 
 import c.y.mig.db.query.Select;
 import c.y.mig.model.DBConnMaster;
+import c.y.mig.model.InsertColumn;
 import c.y.mig.model.InsertSql;
 import c.y.mig.model.InsertTable;
 import c.y.mig.model.MigrationList;
@@ -113,20 +114,35 @@ public class KeysetMigrationStrategy extends AbstractMigrationStrategy {
         }, 1000, 3000);
         
         final String finalTableName = tableName;
-        
+
+        // 5. Pre-build Target SQL templates & Pre-filter Column lists (Reuse for all chunks)
+        List<InsertSql> sqlList = schema.getInsertSqlList();
+        List<String> targetQueries = new ArrayList<>();
+        List<List<InsertColumn>> filteredColumnsList = new ArrayList<>();
+
+        if (sqlList != null) {
+            List<InsertColumn> allColumns = schema.getInsertColumnList();
+            for (InsertSql sql : sqlList) {
+                List<InsertColumn> filtered = new ArrayList<>();
+                for (InsertColumn col : allColumns) {
+                    if (sql.getInsert_sql_seq().equals(col.getInsert_sql_seq())) {
+                        filtered.add(col);
+                    }
+                }
+                filteredColumnsList.add(filtered);
+                targetQueries.add(buildTargetQuery(sql, filtered, schema.getTarget().getDb_type()));
+            }
+        }
+
         try {
             for (int i = 0; i < chunkKeys.size(); i++) {
                 final int chunkIndex = i;
                 final Map<String, Object> startKey = chunkKeys.get(i);
-                final Map<String, Object> nextKey = (i < chunkKeys.size() - 1) ? chunkKeys.get(i + 1) : null;
                 
-                final int chunkLimit = fetchSize; // Still needed for LIMIT, though Range helps
+                final int chunkLimit = fetchSize;
                 executor.submit(() -> {
                     try {
-                        // Pass nextKey to strictly bound the chunk if we want, but Keyset Strategy
-                        // usually just seeks and LIMITs. Range bounding helps safety.
-                        // For now, keeping original processChunk logic but we could optimize.
-                        processChunk(chunkIndex, startKey, pkCols, finalTableName, schema, chunkLimit, totalProcessed, totalRead);
+                        processChunk(chunkIndex, startKey, pkCols, finalTableName, schema, chunkLimit, totalProcessed, totalRead, targetQueries, filteredColumnsList);
                     } catch (Exception e) {
                         log.error("Chunk " + chunkIndex + " failed", e);
                     }
@@ -218,10 +234,16 @@ public class KeysetMigrationStrategy extends AbstractMigrationStrategy {
             
             sql.append(" ) ");
             sql.append(" SELECT ").append(pkList).append(" FROM numbered_rows ");
-            sql.append(" WHERE rn = 1 OR MOD(rn, ?) = 1 "); 
+            
+            String dbType = sourceDs.getDb_type();
+            if (dbType != null && (dbType.toLowerCase().contains("mssql") || dbType.toLowerCase().contains("sqlserver"))) {
+                sql.append(" WHERE rn = 1 OR (rn - 1) % ? = 0 "); 
+            } else {
+                sql.append(" WHERE rn = 1 OR MOD(rn - 1, ?) = 0 "); 
+            }
             sql.append(" ORDER BY rn ");
 
-            log.info("Fetching Keys Query: {}", sql.toString());
+            log.info("Fetching Keys Query ({}): {}", dbType, sql.toString());
 
             pstmt = conn.prepareStatement(sql.toString());
             
@@ -257,7 +279,7 @@ public class KeysetMigrationStrategy extends AbstractMigrationStrategy {
         return keys;
     }
 
-    private void processChunk(int chunkIndex, Map<String, Object> startKey, String[] pkCols, String tableName, MigrationSchema schema, int limit, AtomicInteger totalProcessed, AtomicInteger totalRead) {
+    private void processChunk(int chunkIndex, Map<String, Object> startKey, String[] pkCols, String tableName, MigrationSchema schema, int limit, AtomicInteger totalProcessed, AtomicInteger totalRead, List<String> targetQueries, List<List<InsertColumn>> filteredColumnsList) {
         Connection sourceConn = null;
         Connection targetConn = null;
         PreparedStatement sourcePstmt = null;
@@ -268,10 +290,9 @@ public class KeysetMigrationStrategy extends AbstractMigrationStrategy {
             targetConn = dynamicDataSource.getConnection(schema.getTarget());
             targetConn.setAutoCommit(false);
             
-            List<InsertSql> sqlList = schema.getInsertSqlList();
-            targetPstmts = new PreparedStatement[sqlList.size()];
-            for (int i = 0; i < sqlList.size(); i++) {
-                String query = buildTargetQuery(sqlList.get(i), schema.getInsertColumnList());
+            targetPstmts = new PreparedStatement[targetQueries.size()];
+            for (int i = 0; i < targetQueries.size(); i++) {
+                String query = targetQueries.get(i);
                 if (query != null) targetPstmts[i] = targetConn.prepareStatement(query);
             }
 
@@ -281,8 +302,9 @@ public class KeysetMigrationStrategy extends AbstractMigrationStrategy {
             select.addField(" * ");
             select.addFrom(tableName);
             
-            // WHERE (PK) >= (StartKey)
-            addSeekCriteria(select, pkCols, startKey);
+            // Seek Criteria (Keyset Pagination)
+            String sourceDbType = schema.getSource().getDb_type();
+            addSeekCriteria(select, pkCols, startKey, sourceDbType);
             
             for(String col : pkCols) select.addOrder(col);
             
@@ -291,40 +313,54 @@ public class KeysetMigrationStrategy extends AbstractMigrationStrategy {
             String query = applyLimit(select.toQuery(), limit, dbType);
             
             log.info("Chunk [{}] Query: {}", chunkIndex, query);
-            log.info("pk key {}", pkCols.toString());
+            log.info("pk key {}", java.util.Arrays.toString(pkCols));
             
             sourcePstmt = sourceConn.prepareStatement(query);
-            bindSeekParams(sourcePstmt, pkCols, startKey, 1);
+            bindSeekParams(sourcePstmt, pkCols, startKey, 1, sourceDbType);
             sourcePstmt.setFetchSize(limit);
             
             sourceRs = sourcePstmt.executeQuery();
             ResultSetMetaData meta = sourceRs.getMetaData();
             int colCount = meta.getColumnCount();
-            
+
+            // [Optimization] Cache column names outside row loop
+            String[] colNames = new String[colCount];
+            for (int i = 1; i <= colCount; i++) {
+                colNames[i-1] = meta.getColumnName(i).toUpperCase();
+            }
+
+            long startFetchRowTime = System.currentTimeMillis();
             int rowCount = 0;
+            List<InsertSql> sqlList = schema.getInsertSqlList();
             while (sourceRs.next()) {
                 Map<String, Object> row = new HashMap<>();
-                for (int i = 1; i <= colCount; i++) {
-                    String colName = meta.getColumnName(i).toUpperCase();
-                    row.put(colName, sourceRs.getObject(i));
+                for (int i = 1; i <= colNames.length; i++) {
+                    row.put(colNames[i-1], sourceRs.getObject(i));
                 }
 
-                for (int i = 0; i < sqlList.size(); i++) {
+                for (int i = 0; i < targetQueries.size(); i++) {
                     if (targetPstmts[i] == null) continue;
-                    setTargetParams(targetPstmts[i], sqlList.get(i), schema.getInsertColumnList(), row);
+                    setTargetParams(targetPstmts[i], sqlList.get(i), filteredColumnsList.get(i), row);
                     targetPstmts[i].addBatch();
                 }
                 rowCount++;
             }
+            long endFetchTime = System.currentTimeMillis();
+            long fetchDuration = endFetchTime - startFetchRowTime;
             
             if (rowCount > 0) {
                 totalRead.addAndGet(rowCount);
+                long startWrite = System.currentTimeMillis();
                 executeBatch(targetPstmts);
                 targetConn.commit();
+                long writeDuration = System.currentTimeMillis() - startWrite;
                 totalProcessed.addAndGet(rowCount);
+                
+                log.info("Chunk [{}] Finished. Rows: {} - Read(Fetch): {}ms, Write(Batch): {}ms, Total: {}ms", 
+                        chunkIndex, rowCount, fetchDuration, writeDuration, (System.currentTimeMillis() - startFetchRowTime));
+            } else {
+                log.info("Chunk [{}] Finished. No rows found.", chunkIndex);
             }
-            
-            log.info("Chunk [{}] Finished. Rows: {}", chunkIndex, rowCount);
 
         } catch (Exception e) {
             log.error("Error in Chunk " + chunkIndex, e);
@@ -339,49 +375,4 @@ public class KeysetMigrationStrategy extends AbstractMigrationStrategy {
     }
 
     
-    // Tuple Comparison: (A, B) >= (?, ?)
-    // note: >= because we are taking the EXACT start key of the chunk
-    private void addSeekCriteria(Select select, String[] pkCols, Map<String, Object> lastRow) {
-        StringBuilder sb = new StringBuilder();
-        sb.append(" (");
-        for (int i = 0; i < pkCols.length; i++) {
-            sb.append(pkCols[i]);
-            if (i < pkCols.length - 1) sb.append(", ");
-        }
-        sb.append(") >= (");
-        for (int i = 0; i < pkCols.length; i++) {
-            sb.append("?");
-            if (i < pkCols.length - 1) sb.append(", ");
-        }
-        sb.append(") ");
-        select.addWhere(sb.toString(), null);
-    }
-
-    private int bindSeekParams(PreparedStatement pstmt, String[] pkCols, Map<String, Object> lastRow, int startIdx) throws SQLException {
-        int currentParamIdx = startIdx;
-        for (String col : pkCols) {
-            pstmt.setObject(currentParamIdx++, lastRow.get(col.toUpperCase()));
-        }
-        return currentParamIdx;
-    }
-
-    protected String applyLimit(String baseQuery, int limit, String dbType) {
-        if (StringUtil.empty(dbType)) return baseQuery + " LIMIT " + limit;
-        
-        String upperType = dbType.toUpperCase();
-        if (upperType.contains("ORACLE")) {
-            return "SELECT * FROM ( " + baseQuery + " ) WHERE ROWNUM <= " + limit;
-        } else if (upperType.contains("MSSQL") || upperType.contains("SQLSERVER")) {
-            // Check if SELECT is at the start (simple replacement)
-            String upperQuery = baseQuery.trim().toUpperCase();
-            if (upperQuery.startsWith("SELECT")) {
-                 return baseQuery.replaceFirst("(?i)SELECT", "SELECT TOP " + limit);
-            }
-            // Fallback if not starting with SELECT (e.g. WITH ...) -> Subquery
-            return "SELECT TOP " + limit + " * FROM ( " + baseQuery + " ) SUB";
-        } else {
-            // MySQL, MariaDB, PostgreSQL, etc.
-            return baseQuery + " LIMIT " + limit;
-        }
-    }
 }

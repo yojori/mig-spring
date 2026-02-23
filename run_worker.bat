@@ -1,4 +1,5 @@
 @echo off
+chcp 65001 > nul
 set "WORKER_ID=%~1"
 
 echo Building Migration Common...

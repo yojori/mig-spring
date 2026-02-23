@@ -1,4 +1,5 @@
 @echo off
+chcp 65001 > nul
 echo Building Migration Common...
 cd java\mig-common
 call mvn install

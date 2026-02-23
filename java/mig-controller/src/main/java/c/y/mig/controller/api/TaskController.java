@@ -3,6 +3,7 @@ package c.y.mig.controller.api;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -36,7 +37,7 @@ public class TaskController {
         return taskId;
     }
 
-    @GetMapping("/task/{taskId}/config")
+    @GetMapping(value = "/task/{taskId}/config", produces = MediaType.APPLICATION_JSON_VALUE)
     public MigrationSchema getConfig(@PathVariable String taskId) {
         return taskService.getTaskConfig(taskId);
     }
@@ -51,7 +52,7 @@ public class TaskController {
         taskService.createChildTask(childTask);
     }
 
-    @GetMapping("/db-connections")
+    @GetMapping(value = "/db-connections", produces = MediaType.APPLICATION_JSON_VALUE)
     public java.util.List<c.y.mig.model.DBConnMaster> getDBConnections() {
         return taskService.getAllDBConnections();
     }

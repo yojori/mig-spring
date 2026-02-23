@@ -93,9 +93,15 @@
 
                                     <!-- Header & Search -->
                                     <div class="row mb-4 align-items-center">
-                                        <div class="col-md-6">
-                                            <h4 class="mb-0 fw-bold">이관 진행 현황</h4>
+                                        <div class="col-md-4">
+                                            <h4 class="mb-0 fw-bold">이관 진행 현황 <button type="button" class="btn btn-outline-secondary btn-sm ms-2" onclick="location.reload();" title="Refresh"><i class="bi bi-arrow-clockwise"></i></button></h4>
                                             <p class="text-muted small mb-0">마이그레이션 작업 실행 이력을 조회합니다.</p>
+                                        </div>
+                                        <div class="col-md-2 text-end">
+                                             <div class="form-check form-switch d-inline-block mt-2">
+                                                <input class="form-check-input" type="checkbox" id="autoRefreshCheck" onchange="toggleAutoRefresh(this);">
+                                                <label class="form-check-label small" for="autoRefreshCheck">Auto Refresh (5s)</label>
+                                            </div>
                                         </div>
                                         <div class="col-md-6 text-end">
                                             <div class="card p-2 d-inline-block bg-white">
@@ -200,8 +206,14 @@
                                                                 ${list.result_msg}
                                                             </td>
                                                             <td class="text-center small text-muted">
-                                                                <fmt:formatDate value="${list.create_date}"
-                                                                    pattern="yyyy-MM-dd HH:mm:ss" />
+                                                                <div class="d-flex align-items-center justify-content-center">
+                                                                    <fmt:formatDate value="${list.create_date}" pattern="yyyy-MM-dd HH:mm:ss" />
+                                                                    <button type="button" class="btn btn-sm btn-outline-primary ms-2 p-0" 
+                                                                            onclick="reRegister('${list.mig_list_seq}', '${list.mig_name}')"
+                                                                            style="width: 24px; height: 24px; border-radius: 50%;" title="재등록 및 실행">
+                                                                        <i class="bi bi-play-fill"></i>
+                                                                    </button>
+                                                                </div>
                                                             </td>
                                                         </tr>
                                                     </c:forEach>
@@ -228,8 +240,60 @@
                                 <iframe width=0 height=0 name='hiddenframe' style='display:none;'></iframe>
                             </div>
 
-                            <script
-                                src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+                            <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+                            <script>
+                                function reRegister(seq, name) {
+                                    if(!confirm("[" + name + "] 작업을 다시 등록하여 실행하시겠습니까?")) return;
+                                    
+                                    var xhr = new XMLHttpRequest();
+                                    xhr.open("POST", "./migration-work-proc.jsp", true);
+                                    xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+                                    xhr.onreadystatechange = function() {
+                                        if (xhr.readyState === 4) {
+                                            if (xhr.status === 200) {
+                                                try {
+                                                    var res = JSON.parse(xhr.responseText);
+                                                    if(res.success) {
+                                                        alert(res.message + "\n목록 첫 페이지로 이동합니다.");
+                                                        location.href = "./migration-work-list.jsp"; // 필터 없이 첫 페이지로
+                                                    } else {
+                                                        alert("데이터베이스 오류: " + res.message);
+                                                    }
+                                                } catch(e) {
+                                                    alert("응답 분석 오류: " + xhr.responseText);
+                                                }
+                                            } else {
+                                                alert("서버 연결 오류 (상태코드: " + xhr.status + ")");
+                                            }
+                                        }
+                                    };
+                                    xhr.send("mode=register&mig_list_seq=" + encodeURIComponent(seq) + "&mig_name=" + encodeURIComponent(name));
+                                }
+
+                                var refreshTimer = null;
+                                function toggleAutoRefresh(chk) {
+                                    if(chk.checked) {
+                                        refreshTimer = setInterval(function() {
+                                            location.reload();
+                                        }, 5000);
+                                        localStorage.setItem("autoRefresh", "Y");
+                                    } else {
+                                        if(refreshTimer) clearInterval(refreshTimer);
+                                        localStorage.setItem("autoRefresh", "N");
+                                    }
+                                }
+
+                                // Restore auto-refresh state
+                                window.onload = function() {
+                                    if(localStorage.getItem("autoRefresh") === "Y") {
+                                        var chk = document.getElementById("autoRefreshCheck");
+                                        if(chk) {
+                                            chk.checked = true;
+                                            toggleAutoRefresh(chk);
+                                        }
+                                    }
+                                };
+                            </script>
                         </body>
 
                         </html>

@@ -23,6 +23,7 @@ public class WorkList extends Search {
     // Join Fields (Optional, for display)
     private String mig_name;
     private String mig_master;
+    private String truncate_yn;
     
     private String param_string; // Execution parameters (e.g. PK range)
 
@@ -74,6 +75,9 @@ public class WorkList extends Search {
 
     public String getMig_master() { return mig_master; }
     public void setMig_master(String mig_master) { this.mig_master = mig_master; }
+
+    public String getTruncate_yn() { return truncate_yn; }
+    public void setTruncate_yn(String truncate_yn) { this.truncate_yn = truncate_yn; }
 
     private String orderBy;
     public String getOrderBy() { return orderBy; }

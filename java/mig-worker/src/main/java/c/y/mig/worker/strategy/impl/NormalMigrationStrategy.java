@@ -12,6 +12,7 @@ import java.util.Map;
 import org.springframework.stereotype.Component;
 
 import c.y.mig.db.query.Select;
+import c.y.mig.model.InsertColumn;
 import c.y.mig.model.InsertSql;
 import c.y.mig.model.InsertTable;
 import c.y.mig.model.MigrationList;
@@ -39,7 +40,7 @@ public class NormalMigrationStrategy extends AbstractMigrationStrategy {
             // 1. Prepare Source connection & Query
             sourceConn = dynamicDataSource.getConnection(schema.getSource());
             
-            String sqlSource = "";
+            String sqlSource;
             List<InsertTable> tables = schema.getInsertTableList();
             
             if (tables != null && !tables.isEmpty()) {
@@ -91,9 +92,20 @@ public class NormalMigrationStrategy extends AbstractMigrationStrategy {
             }
 
             targetPstmts = new PreparedStatement[sqlList.size()];
+            List<List<c.y.mig.model.InsertColumn>> filteredColumnsList = new java.util.ArrayList<>();
+            List<InsertColumn> allColumns = schema.getInsertColumnList();
+
             for (int i = 0; i < sqlList.size(); i++) {
                 InsertSql iSql = sqlList.get(i);
-                String query = buildTargetQuery(iSql, schema.getInsertColumnList());
+                List<c.y.mig.model.InsertColumn> filtered = new java.util.ArrayList<>();
+                for (InsertColumn col : allColumns) {
+                    if (iSql.getInsert_sql_seq().equals(col.getInsert_sql_seq())) {
+                        filtered.add(col);
+                    }
+                }
+                filteredColumnsList.add(filtered);
+                
+                String query = buildTargetQuery(iSql, filtered, schema.getTarget().getDb_type());
                 log.debug("Target SQL [{}]: {}", i, query);
                 if (query != null) {
                     targetPstmts[i] = targetConn.prepareStatement(query);
@@ -106,39 +118,65 @@ public class NormalMigrationStrategy extends AbstractMigrationStrategy {
             int totalInserted = 0;
             long totalRead = 0;
 
-            while (sourceRs.next()) {
+            // Cache Column Names to avoid metadata lookup in loop
+            String[] colNames = new String[colCount];
+            for (int i = 1; i <= colCount; i++) {
+                colNames[i-1] = meta.getColumnName(i).toUpperCase();
+            }
+
+            long writeTimeTotal = 0;
+            long readTimeTotal = 0;
+            long lastMark = System.currentTimeMillis();
+
+            while (true) {
+                long startRead = System.currentTimeMillis();
+                if (!sourceRs.next()) break;
+                readTimeTotal += (System.currentTimeMillis() - startRead);
+
                 totalRead++;
                 Map<String, Object> row = new HashMap<>();
-                for (int i = 1; i <= colCount; i++) {
-                    String colName = meta.getColumnName(i).toUpperCase();
-                    row.put(colName, sourceRs.getObject(i));
+                for (int i = 1; i <= colNames.length; i++) {
+                    row.put(colNames[i-1], sourceRs.getObject(i));
                 }
 
                 for (int i = 0; i < sqlList.size(); i++) {
                     if (targetPstmts[i] == null) continue;
-                    setTargetParams(targetPstmts[i], sqlList.get(i), schema.getInsertColumnList(), row);
+                    setTargetParams(targetPstmts[i], sqlList.get(i), filteredColumnsList.get(i), row);
                     targetPstmts[i].addBatch();
                 }
 
                 rowCount++;
 
                 if (rowCount % batchSize == 0) {
+                    long startWrite = System.currentTimeMillis();
                     executeBatch(targetPstmts);
                     targetConn.commit();
+                    long writeDuration = (System.currentTimeMillis() - startWrite);
+                    writeTimeTotal += writeDuration;
+
                     totalInserted += rowCount;
-                    log.info("Processed {} rows...", totalInserted);
+                    long elapsed = System.currentTimeMillis() - lastMark;
+                    log.info("Processed {} rows... (Current Batch - ReadTime: {}ms, WriteTime: {}ms, Total: {}ms)", 
+                            totalInserted, readTimeTotal, writeDuration, elapsed);
+                    
                     if (listener != null) listener.onProgress(totalRead, totalInserted);
+                    
+                    // Reset batch specific read timer if you want, or keep cumulative
+                    readTimeTotal = 0; 
+                    lastMark = System.currentTimeMillis();
                     rowCount = 0;
                 }
             }
 
             if (rowCount > 0) {
+                long startWrite = System.currentTimeMillis();
                 executeBatch(targetPstmts);
                 targetConn.commit();
+                writeTimeTotal += (System.currentTimeMillis() - startWrite);
                 totalInserted += rowCount;
             }
 
-            log.info("Total Processed Rows: {}", totalInserted);
+            log.info("Total Processed Rows: {}, Total Write Time: {}ms, Total Read Time: {}ms", totalInserted, writeTimeTotal, readTimeTotal);
             if (listener != null) listener.onProgress(totalRead, totalInserted);
 
         } catch (Exception e) {

@@ -11,14 +11,14 @@ import java.util.Map;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import c.y.mig.worker.client.WorkerClient;
-import c.y.mig.worker.strategy.AbstractMigrationStrategy;
-import c.y.mig.worker.strategy.ProgressListener;
 import c.y.mig.model.DBConnMaster;
 import c.y.mig.model.InsertSql;
 import c.y.mig.model.InsertTable;
 import c.y.mig.model.MigrationList;
 import c.y.mig.model.MigrationSchema;
+import c.y.mig.worker.client.WorkerClient;
+import c.y.mig.worker.strategy.AbstractMigrationStrategy;
+import c.y.mig.worker.strategy.ProgressListener;
 
 @Component("JAVA")
 public class JavaMigrationStrategy extends AbstractMigrationStrategy {
@@ -238,38 +238,27 @@ public class JavaMigrationStrategy extends AbstractMigrationStrategy {
              for(int i=0; i<pkCols.length; i++) pkCols[i] = pkCols[i].trim();
 
              if (!keysetValues.isEmpty() && pkCols.length > 0) {
-                 StringBuilder seekSql = new StringBuilder();
-                 seekSql.append("SELECT * FROM (").append(sql).append(") T WHERE (");
-                 for(int i=0; i<pkCols.length; i++) {
-                     seekSql.append(pkCols[i]);
-                     if(i < pkCols.length - 1) seekSql.append(", ");
-                 }
-                 seekSql.append(") >= (");
-                 for(int i=0; i<pkCols.length; i++) {
-                     seekSql.append("?");
-                     if(i < pkCols.length - 1) seekSql.append(", ");
-                 }
-                 seekSql.append(") ");
-                 seekSql.append(" ORDER BY ");
-                 for(int i=0; i<pkCols.length; i++) {
-                     seekSql.append(pkCols[i]);
-                     if(i < pkCols.length - 1) seekSql.append(", ");
-                 }
+                 c.y.mig.db.query.Select select = new c.y.mig.db.query.Select();
+                 select.addField(" * ");
+                 select.addFrom("(" + sql + ") T");
+                 
+                 java.util.Map<String, Object> rowObj = new java.util.HashMap<>(keysetValues);
+                 addSeekCriteria(select, pkCols, rowObj, workList.getSource_db_type());
+                 
+                 for(String col : pkCols) select.addOrder(col);
+                 
                  int limit = workList.getPage_count_per_thread();
                  if (limit <= 0) limit = 1000;
-                 finalSql = applyLimit(seekSql.toString(), limit, workList.getSource_db_type());
+                 finalSql = applyLimit(select.toQuery(), limit, workList.getSource_db_type());
+                 
+                 log.info("[JAVA_STRATEGY] Executing Keyset Batch SQL: {}", finalSql);
+                 pstmt = conn.prepareStatement(finalSql);
+                 bindSeekParams(pstmt, pkCols, rowObj, 1, workList.getSource_db_type());
+             } else {
+                 log.info("[JAVA_STRATEGY] Executing standard SQL: {}", finalSql);
+                 pstmt = conn.prepareStatement(finalSql);
              }
              
-             log.info("[JAVA_STRATEGY] Executing Keyset Batch SQL: {}", finalSql);
-             pstmt = conn.prepareStatement(finalSql);
-             
-             if (!keysetValues.isEmpty() && pkCols.length > 0) {
-                 for(int i=0; i<pkCols.length; i++) {
-                     Object val = keysetValues.get(pkCols[i].toUpperCase());
-                     log.debug("[JAVA_STRATEGY] Binding Param {}: {}={}", i+1, pkCols[i], val);
-                     pstmt.setObject(i+1, val);
-                 }
-             }
              
              rs = pstmt.executeQuery();
              java.util.List<Map<String, Object>> dataList = new java.util.ArrayList<>();
@@ -278,7 +267,16 @@ public class JavaMigrationStrategy extends AbstractMigrationStrategy {
              int colCount = md.getColumnCount();
              
              int rowCounter = 0;
-             while (rs.next()) {
+             long totalReadTime = 0;
+             long totalInvokeTime = 0;
+
+             while (true) {
+                 long startRead = System.currentTimeMillis();
+                 boolean hasNext = rs.next();
+                 totalReadTime += (System.currentTimeMillis() - startRead);
+                 
+                 if (!hasNext) break;
+
                  Map<String, Object> row = new java.util.HashMap<>();
                  for (int i = 1; i <= colCount; i++) {
                      row.put(md.getColumnLabel(i), rs.getObject(i));
@@ -287,17 +285,25 @@ public class JavaMigrationStrategy extends AbstractMigrationStrategy {
                  rowCounter++;
                  
                  if (dataList.size() >= processBatchSize) {
-                     log.info("[JAVA_STRATEGY] Invoking {} with {} rows (Total read: {})", methodName, dataList.size(), rowCounter);
+                     long startInvoke = System.currentTimeMillis();
+                     log.info("[JAVA_STRATEGY] Invoking {} with {} rows (Total read: {}). Current Read Time: {}ms", methodName, dataList.size(), rowCounter, totalReadTime);
                      executeMethod(className, methodName, schema, workList, null, dataList);
+                     totalInvokeTime += (System.currentTimeMillis() - startInvoke);
+
                      dataList.clear();
+                     totalReadTime = 0; // Reset for next batch log
                  }
              }
              if (!dataList.isEmpty()) {
-                 log.info("[JAVA_STRATEGY] Invoking final batch of {} with {} rows (Total read: {})", methodName, dataList.size(), rowCounter);
+                 long startInvoke = System.currentTimeMillis();
+                 log.info("[JAVA_STRATEGY] Invoking final batch of {} with {} rows (Total read: {}). Current Read Time: {}ms", methodName, dataList.size(), rowCounter, totalReadTime);
                  executeMethod(className, methodName, schema, workList, null, dataList);
+                 totalInvokeTime += (System.currentTimeMillis() - startInvoke);
              } else if (rowCounter == 0) {
                  log.warn("[JAVA_STRATEGY] No rows found for this chunk!");
              }
+             
+             log.info("[JAVA_STRATEGY] Finished batch execution. Total Rows: {}, Total Invoke Time: {}ms", rowCounter, totalInvokeTime);
          } catch (Exception e) {
              log.error("[JAVA_STRATEGY] Error in executeBatch", e);
              throw e;
