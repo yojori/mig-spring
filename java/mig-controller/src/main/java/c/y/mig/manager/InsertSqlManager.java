@@ -20,7 +20,7 @@ import c.y.mig.model.DBConnMaster;
 import c.y.mig.model.InsertColumn;
 import c.y.mig.model.InsertSql;
 import c.y.mig.model.MigrationList;
-import c.y.mig.util.Config;
+
 
 public class InsertSqlManager extends Manager {
     private static final Logger log = LoggerFactory.getLogger(InsertSqlManager.class);
@@ -167,10 +167,11 @@ public class InsertSqlManager extends Manager {
             InsertColumnManager colManager = new InsertColumnManager();
             colManager.deleteByInsertSqlSeq(search.getInsert_sql_seq());
             
+            String baseID = Long.toString(System.currentTimeMillis(), 36);
             for(int i = 1; i <= meta.getColumnCount(); i++) {
                 InsertColumn col = new InsertColumn();
                 
-                col.setInsert_column_seq(Config.getOrdNoSequence("IS"));
+                col.setInsert_column_seq("IC-" + baseID + "-" + String.format("%03d", i));
                 col.setInsert_sql_seq(search.getInsert_sql_seq());
                 
                 col.setColumn_name(meta.getColumnName(i).toUpperCase());

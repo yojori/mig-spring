@@ -19,7 +19,7 @@ import c.y.mig.db.query.Update;
 import c.y.mig.model.MigrationList;
 import c.y.mig.model.SelectColumn;
 import c.y.mig.model.DBConnMaster;
-import c.y.mig.util.Config;
+
 
 // Restored from legacy
 public class SelectColumnManager extends Manager {
@@ -376,11 +376,12 @@ public class SelectColumnManager extends Manager {
 			stmt1.setString(1, mList.getMig_list_seq());			
 			stmt1.executeUpdate();
 			
+			String baseID = Long.toString(System.currentTimeMillis(), 36);
 			for(int metaLoop = 1; metaLoop <= meta.getColumnCount(); metaLoop++)
 			{
 				SelectColumn selectColumn1 = new SelectColumn();
 				
-				selectColumn1.setColumn_seq(Config.getOrdNoSequence("SC"));
+				selectColumn1.setColumn_seq("SC-" + baseID + "-" + String.format("%03d", metaLoop));
 				selectColumn1.setMig_list_seq(mList.getMig_list_seq());
 				
 				// 2018/08/21 대문자로 컬럼 명 설정

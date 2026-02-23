@@ -112,7 +112,7 @@ public class MigrationMetadataService {
                 // 4. Register Select Columns (Only if metadata exists)
                 if (sourceMeta != null) {
                     SelectColumnManager scm = new SelectColumnManager();
-                    String baseID = ml.getMig_list_seq().substring(3); // Remove "ML-"
+                    String baseID = Long.toString(System.currentTimeMillis(), 36);
                     for (int i = 1; i <= sourceColCount; i++) {
                         SelectColumn col = new SelectColumn();
                         col.setColumn_seq("SC-" + baseID + "-" + String.format("%03d", i));
@@ -150,7 +150,7 @@ public class MigrationMetadataService {
             InsertColumnManager icm = new InsertColumnManager();
             
             InsertSql is = new InsertSql();
-            String baseID = ml.getMig_list_seq().substring(3); // Remove "ML-"
+            String baseID = Long.toString(System.currentTimeMillis(), 36);
             String insertSqlSeq = "IS-" + baseID + "-01";
             is.setInsert_sql_seq(insertSqlSeq);
             is.setMig_list_seq(ml.getMig_list_seq());
@@ -174,7 +174,7 @@ public class MigrationMetadataService {
 
             // Register columns only if source metadata was successful
             if (sourceMeta != null) {
-                String baseID_SC = insertSqlSeq.substring(3); // Remove "IS-"
+                String baseID_SC = Long.toString(System.currentTimeMillis(), 36);
                 for (int i = 1; i <= sourceColCount; i++) {
                     String colName = sourceMeta.getColumnLabel(i).toUpperCase();
                     
