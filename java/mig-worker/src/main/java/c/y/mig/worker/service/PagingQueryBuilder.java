@@ -20,7 +20,9 @@ public class PagingQueryBuilder {
 
         if ("mysql".equalsIgnoreCase(dbType)) {
             query = sql + " limit ?, ? ";
-        } else if ("maria".equalsIgnoreCase(dbType)) {
+        } else if ("maria".equalsIgnoreCase(dbType) || "mariadb".equalsIgnoreCase(dbType)) {
+            query = sql + " limit ? OFFSET ? ";
+        } else if ("postgresql".equalsIgnoreCase(dbType) || "postgres".equalsIgnoreCase(dbType)) {
             query = sql + " limit ? OFFSET ? ";
         } else if ("mssql".equalsIgnoreCase(dbType)) {
             // Basic OFFSET/FETCH for modern MSSQL
@@ -44,7 +46,10 @@ public class PagingQueryBuilder {
         if ("mysql".equalsIgnoreCase(dbType)) {
             pstmt.setInt(i + 1, (form.getCurrentPage() - 1) * form.getPageSize());
             pstmt.setInt(i + 2, form.getPageSize());
-        } else if ("maria".equalsIgnoreCase(dbType)) {
+        } else if ("maria".equalsIgnoreCase(dbType) || "mariadb".equalsIgnoreCase(dbType)) {
+            pstmt.setInt(i + 1, form.getPageSize());
+            pstmt.setInt(i + 2, (form.getCurrentPage() - 1) * form.getPageSize());
+        } else if ("postgresql".equalsIgnoreCase(dbType) || "postgres".equalsIgnoreCase(dbType)) {
             pstmt.setInt(i + 1, form.getPageSize());
             pstmt.setInt(i + 2, (form.getCurrentPage() - 1) * form.getPageSize());
         } else if ("oracle".equalsIgnoreCase(dbType)) {

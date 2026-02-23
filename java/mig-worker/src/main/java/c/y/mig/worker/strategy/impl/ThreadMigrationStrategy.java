@@ -139,7 +139,10 @@ public class ThreadMigrationStrategy extends AbstractMigrationStrategy {
                 } else if ("mysql".equalsIgnoreCase(dbType) || "mssql".equalsIgnoreCase(dbType)) {
                     p1 = ((form.getCurrentPage() - 1) * form.getPageSize());
                     p2 = form.getPageSize();
-                } else if ("maria".equalsIgnoreCase(dbType)) {
+                } else if ("maria".equalsIgnoreCase(dbType) || "mariadb".equalsIgnoreCase(dbType)) {
+                    p1 = form.getPageSize();
+                    p2 = ((form.getCurrentPage() - 1) * form.getPageSize());
+                } else if ("postgresql".equalsIgnoreCase(dbType) || "postgres".equalsIgnoreCase(dbType)) {
                     p1 = form.getPageSize();
                     p2 = ((form.getCurrentPage() - 1) * form.getPageSize());
                 }
