@@ -177,4 +177,12 @@ public class TaskServiceImpl implements TaskService {
         search.setPageSize(9999); // Fetch all
         return dbManager.getList(search, c.y.mig.manager.InterfaceManager.LIST);
     }
+
+    @Override
+    public List<c.y.mig.model.TypeMapping> getTypeMappings() {
+        c.y.mig.manager.TypeMappingManager mappingManager = new c.y.mig.manager.TypeMappingManager();
+        c.y.mig.model.TypeMapping search = new c.y.mig.model.TypeMapping();
+        search.setUse_yn("Y");
+        return mappingManager.getList(search);
+    }
 }

@@ -21,8 +21,17 @@ public class MigrationList extends Search {
 
     private String source_db_type;
     private String target_db_type;
+    
+    private String source_db_name;
+    private String target_db_name;
 
     private String display_yn;
+    
+    // Joined fields from ZXXMIG_INSERT_SQL
+    private String source_table;
+    private String source_pk;
+    private String target_table;
+    private String truncate_yn;
     
     private String param_string; // Used for passing dynamic params (e.g. MIN/MAX PK)
 
@@ -71,6 +80,24 @@ public class MigrationList extends Search {
     public String getDisplay_yn() { return display_yn; }
     public void setDisplay_yn(String display_yn) { this.display_yn = display_yn; }
 
+    public String getSource_table() { return source_table; }
+    public void setSource_table(String source_table) { this.source_table = source_table; }
+
+    public String getSource_pk() { return source_pk; }
+    public void setSource_pk(String source_pk) { this.source_pk = source_pk; }
+
+    public String getTarget_table() { return target_table; }
+    public void setTarget_table(String target_table) { this.target_table = target_table; }
+
+    public String getTruncate_yn() { return truncate_yn; }
+    public void setTruncate_yn(String truncate_yn) { this.truncate_yn = truncate_yn; }
+
     public String getParam_string() { return param_string; }
     public void setParam_string(String param_string) { this.param_string = param_string; }
+
+    public String getSource_db_name() { return source_db_name; }
+    public void setSource_db_name(String source_db_name) { this.source_db_name = source_db_name; }
+
+    public String getTarget_db_name() { return target_db_name; }
+    public void setTarget_db_name(String target_db_name) { this.target_db_name = target_db_name; }
 }

@@ -23,6 +23,12 @@ public abstract class AbstractMigrationStrategy implements MigrationStrategy {
 
     @Override
     public void prepare(MigrationSchema schema, MigrationList workList) throws Exception {
+        // 0. Skip for DDL type (handled in execute)
+        if ("DDL".equalsIgnoreCase(c.y.mig.util.StringUtil.nvl(workList.getMig_type()))) {
+            log.info("[PREPARE] DDL type detected. Skipping Truncate (Drop will be handled in execute).");
+            return;
+        }
+
         // 1. Detect Child Task (Chunk)
         // If param_string contains chunk-specific info, we skip truncation.
         String param = c.y.mig.util.StringUtil.nvl(workList.getParam_string());
@@ -45,7 +51,7 @@ public abstract class AbstractMigrationStrategy implements MigrationStrategy {
                         String tableName = t.getTarget_table();
                         if (tableName != null && !truncatedTables.contains(tableName)) {
                             log.info("[PREPARE] Truncating Table (from Tables): {}", tableName);
-                            executeTruncate(targetConn, tableName);
+                            executeTruncate(targetConn, quoteIdentifier(tableName, schema.getTarget().getDb_type()));
                             truncatedTables.add(tableName);
                         }
                     }
@@ -60,7 +66,7 @@ public abstract class AbstractMigrationStrategy implements MigrationStrategy {
                         String tableName = s.getInsert_table();
                         if (tableName != null && !truncatedTables.contains(tableName)) {
                             log.info("[PREPARE] Truncating Table (from SQLs): {}", tableName);
-                            executeTruncate(targetConn, tableName);
+                            executeTruncate(targetConn, quoteIdentifier(tableName, schema.getTarget().getDb_type()));
                             truncatedTables.add(tableName);
                         }
                     }
@@ -161,7 +167,8 @@ public abstract class AbstractMigrationStrategy implements MigrationStrategy {
         
         // Handle cases where the ID might already be quoted partially or fully
         String trimmed = id.trim();
-        if ((trimmed.startsWith("[") && trimmed.endsWith("]")) || 
+        if (trimmed.startsWith("(") || trimmed.contains(" ") || 
+            (trimmed.startsWith("[") && trimmed.endsWith("]")) || 
             (trimmed.startsWith("\"") && trimmed.endsWith("\"")) || 
             (trimmed.startsWith("`") && trimmed.endsWith("`"))) {
             return id;
@@ -178,11 +185,16 @@ public abstract class AbstractMigrationStrategy implements MigrationStrategy {
             return sb.toString();
         }
 
-        if (dbType != null && (dbType.toLowerCase().contains("mssql") || dbType.toLowerCase().contains("sqlserver"))) {
-            return "[" + id + "]";
+        if (dbType != null) {
+            String lowerType = dbType.toLowerCase();
+            if (lowerType.contains("mssql") || lowerType.contains("sqlserver")) {
+                return "[" + id + "]";
+            }
+            if (lowerType.contains("mariadb") || lowerType.contains("mysql") || lowerType.contains("maria")) {
+                return "`" + id + "`";
+            }
         }
-        // PostgreSQL, Oracle, MariaDB(backtick preferred but " is ANSI)
-        // Default to " for ANSI compatibility
+        // PostgreSQL, Oracle, Tibero, etc. (ANSI SQL)
         return "\"" + id + "\"";
     }
 

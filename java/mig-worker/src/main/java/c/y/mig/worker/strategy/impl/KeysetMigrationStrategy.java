@@ -187,8 +187,13 @@ public class KeysetMigrationStrategy extends AbstractMigrationStrategy {
         try {
             conn = dynamicDataSource.getConnection(sourceDs);
             
-            String pkList = String.join(", ", pkCols);
-            String orderBy = String.join(", ", pkCols);
+            String quotedTableName = quoteIdentifier(tableName, sourceDs.getDb_type());
+            String pkList = "";
+            for (int i = 0; i < pkCols.length; i++) {
+                pkList += quoteIdentifier(pkCols[i], sourceDs.getDb_type());
+                if (i < pkCols.length - 1) pkList += ", ";
+            }
+            String orderBy = pkList;
             
             // Parse Composite PK Params (Assume comma separated)
             String[] minPks = (minPk != null) ? minPk.split(",") : null;
@@ -199,14 +204,14 @@ public class KeysetMigrationStrategy extends AbstractMigrationStrategy {
             sql.append("WITH numbered_rows AS ( ");
             sql.append(" SELECT ").append(pkList);
             sql.append(", ROW_NUMBER() OVER (ORDER BY ").append(orderBy).append(") as rn ");
-            sql.append(" FROM ").append(tableName);
+            sql.append(" FROM ").append(quotedTableName);
             
             // Add WHERE for Min/Max
             sql.append(" WHERE 1=1 "); 
             
             if (minPks != null && minPks.length == pkCols.length) {
                 if (pkCols.length == 1) {
-                    sql.append(" AND ").append(pkCols[0]).append(" >= ?");
+                    sql.append(" AND ").append(quoteIdentifier(pkCols[0], sourceDs.getDb_type())).append(" >= ?");
                 } else {
                     // Tuple Comparison: (A, B) >= (?, ?)
                     sql.append(" AND (").append(pkList).append(") >= (");
@@ -220,7 +225,7 @@ public class KeysetMigrationStrategy extends AbstractMigrationStrategy {
             
             if (maxPks != null && maxPks.length == pkCols.length) {
                  if (pkCols.length == 1) {
-                    sql.append(" AND ").append(pkCols[0]).append(" <= ?");
+                    sql.append(" AND ").append(quoteIdentifier(pkCols[0], sourceDs.getDb_type())).append(" <= ?");
                 } else {
                     // Tuple Comparison: (A, B) <= (?, ?)
                     sql.append(" AND (").append(pkList).append(") <= (");
@@ -299,14 +304,12 @@ public class KeysetMigrationStrategy extends AbstractMigrationStrategy {
             sourceConn = dynamicDataSource.getConnection(schema.getSource());
             
             Select select = new Select();
-            select.addField(" * ");
-            select.addFrom(tableName);
-            
-            // Seek Criteria (Keyset Pagination)
             String sourceDbType = schema.getSource().getDb_type();
+            select.addField(" * ");
+            select.addFrom(quoteIdentifier(tableName, sourceDbType));
             addSeekCriteria(select, pkCols, startKey, sourceDbType);
             
-            for(String col : pkCols) select.addOrder(col);
+            for(String col : pkCols) select.addOrder(quoteIdentifier(col, sourceDbType));
             
             // LIMIT N
             String dbType = schema.getSource().getDb_type();
@@ -373,6 +376,4 @@ public class KeysetMigrationStrategy extends AbstractMigrationStrategy {
             closeResources(null, null, targetConn);
         }
     }
-
-    
 }

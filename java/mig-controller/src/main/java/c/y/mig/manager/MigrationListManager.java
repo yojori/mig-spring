@@ -48,27 +48,35 @@ public class MigrationListManager extends Manager {
 
         sql.addField("B.db_type as source_db_type");
         sql.addField("C.db_type as target_db_type");
+        sql.addField("B.master_code as source_db_name");
+        sql.addField("C.master_code as target_db_name");
 
         sql.addField("A.create_date");
         sql.addField("A.update_date");
 
         sql.addField("A.display_yn");
+        
+        // Metadata fields from joins
+        sql.addField("COALESCE(IT.source_table, '') as source_table");
+        sql.addField("COALESCE(IT.target_table, ISQ.insert_table) as target_table");
+        sql.addField("COALESCE(IT.source_pk, ISQ.pk_column) as source_pk");
+        sql.addField("COALESCE(IT.truncate_yn, ISQ.truncate_yn) as detail_truncate_yn");
 
         sql.addFrom(MIGRATION_LIST + " A");
-        sql.addFrom(DB_MASTER + " B");
-        sql.addFrom(DB_MASTER + " C");
+        sql.addInnerJoin(DB_MASTER + " B", "A.source_db_alias = B.master_code");
+        sql.addInnerJoin(DB_MASTER + " C", "A.target_db_alias = C.master_code");
+        
+        sql.addLeftJoin(INSERT_TABLE + " IT", "A.mig_list_seq = IT.mig_list_seq");
+        sql.addLeftJoin(INSERT_SQL + " ISQ", "A.mig_list_seq = ISQ.mig_list_seq");
 
-        sql.addWhere("A.source_db_alias = B.master_code");
-        sql.addWhere("A.target_db_alias = C.master_code");
-
-        sql.addWhere("mig_master = ? ", master.getMig_master());
+        sql.addWhere("A.mig_master = ? ", master.getMig_master());
 
         if (!StringUtil.empty(master.getDisplay_yn())) {
-            sql.addWhere("display_yn = ?", master.getDisplay_yn());
+            sql.addWhere("A.display_yn = ?", master.getDisplay_yn());
         }
 
         if (!StringUtil.empty(master.getExecute_yn())) {
-            sql.addWhere("execute_yn = ?", master.getExecute_yn());
+            sql.addWhere("A.execute_yn = ?", master.getExecute_yn());
         }
 
         sql.addOrder("A.ordering desc");
@@ -92,11 +100,11 @@ public class MigrationListManager extends Manager {
 
         Select sql = new Select();
 
-        sql.addField("COUNT(mig_list_seq)");
-        sql.addFrom(MIGRATION_LIST);
+        sql.addField("COUNT(A.mig_list_seq)");
+        sql.addFrom(MIGRATION_LIST + " A");
 
         if (!StringUtil.empty(master.getDisplay_yn())) {
-            sql.addWhere("display_yn = ?", master.getDisplay_yn());
+            sql.addWhere("A.display_yn = ?", master.getDisplay_yn());
         }
 
         setCountQuery(sql);
@@ -183,9 +191,17 @@ public class MigrationListManager extends Manager {
                     entity.setTarget_db_alias(rs.getString("target_db_alias"));
                     entity.setSource_db_type(rs.getString("source_db_type"));
                     entity.setTarget_db_type(rs.getString("target_db_type"));
+                    entity.setSource_db_name(rs.getString("source_db_name"));
+                    entity.setTarget_db_name(rs.getString("target_db_name"));
                     entity.setCreate_date(rs.getDate("create_date"));
                     entity.setUpdate_date(rs.getDate("update_date"));
                     entity.setDisplay_yn(rs.getString("display_yn"));
+                    
+                    entity.setSource_table(rs.getString("source_table"));
+                    entity.setTarget_table(rs.getString("target_table"));
+                    entity.setSource_pk(rs.getString("source_pk"));
+                    entity.setTruncate_yn(rs.getString("detail_truncate_yn"));
+                    
                     list.add(entity);
                     i++;
                 }
@@ -212,13 +228,21 @@ public class MigrationListManager extends Manager {
             select.addField("A.*");
             select.addField("B.db_type as source_db_type");
             select.addField("C.db_type as target_db_type");
-            select.addFrom(MIGRATION_LIST + " A");
-            select.addFrom(DB_MASTER + " B");
-            select.addFrom(DB_MASTER + " C");
+            select.addField("B.master_code as source_db_name");
+            select.addField("C.master_code as target_db_name");
+            
+            select.addField("COALESCE(IT.source_table, '') as source_table");
+            select.addField("COALESCE(IT.target_table, ISQ.insert_table) as target_table");
+            select.addField("COALESCE(IT.source_pk, ISQ.pk_column) as source_pk");
+            select.addField("COALESCE(IT.truncate_yn, ISQ.truncate_yn) as detail_truncate_yn");
 
-            select.addWhere("A.source_db_alias = B.master_code");
-            select.addWhere("A.target_db_alias = C.master_code");
-            select.addWhere("mig_list_seq = ?", master.getMig_list_seq());
+            select.addFrom(MIGRATION_LIST + " A");
+            select.addInnerJoin(DB_MASTER + " B", "A.source_db_alias = B.master_code");
+            select.addInnerJoin(DB_MASTER + " C", "A.target_db_alias = C.master_code");
+            
+            select.addLeftJoin(INSERT_TABLE + " IT", "A.mig_list_seq = IT.mig_list_seq");
+            select.addLeftJoin(INSERT_SQL + " ISQ", "A.mig_list_seq = ISQ.mig_list_seq");
+            select.addWhere("A.mig_list_seq = ?", master.getMig_list_seq());
 
             stmt = con.prepareStatement(select.toQuery());
             setParameter(select, stmt);
@@ -239,9 +263,16 @@ public class MigrationListManager extends Manager {
                 master.setTarget_db_alias(rs.getString("target_db_alias"));
                 master.setSource_db_type(rs.getString("source_db_type"));
                 master.setTarget_db_type(rs.getString("target_db_type"));
+                master.setSource_db_name(rs.getString("source_db_name"));
+                master.setTarget_db_name(rs.getString("target_db_name"));
                 master.setCreate_date(rs.getDate("create_date"));
                 master.setUpdate_date(rs.getDate("update_date"));
                 master.setDisplay_yn(rs.getString("display_yn"));
+                
+                master.setSource_table(rs.getString("source_table"));
+                master.setTarget_table(rs.getString("target_table"));
+                master.setSource_pk(rs.getString("source_pk"));
+                master.setTruncate_yn(rs.getString("detail_truncate_yn"));
             } else {
                 master = null;
             }
@@ -448,5 +479,4 @@ public class MigrationListManager extends Manager {
         }
     }
 
-    // Restored focus to core CRUD
 }

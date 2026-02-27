@@ -89,8 +89,10 @@ public abstract class Manager implements InterfaceManager {
 
     public void setListQuery(Select listQuery) {
         this.listQuery = listQuery;
-        this.countQuery.setWhereField(listQuery.getWhereField());
-        this.countQuery.setWhere(listQuery.getWhere());
+        if (this.countQuery != null) {
+            this.countQuery.setWhereField(listQuery.getWhereField());
+            this.countQuery.setWhere(listQuery.getWhere());
+        }
     }
 
     public Select getListQuery() {

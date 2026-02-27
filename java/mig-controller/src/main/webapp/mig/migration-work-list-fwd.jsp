@@ -83,6 +83,7 @@
                                                     href="./migration-work-list.jsp">이관 진행 현황</a></li>
                                             <li class="nav-item"><a class="nav-link" href="./db-con-list.jsp">DB
                                                     Connection 관리</a></li>
+                                            <li class="nav-item"><a class="nav-link" href="./type-mapping-list.jsp">DB Type 관리</a></li>
                                         </ul>
                                     </div>
                                 </div>
@@ -134,7 +135,7 @@
                                             <table class="table table-hover align-middle mb-0">
                                                 <thead>
                                                     <tr>
-                                                        <th class="text-center">Work SEQ</th>
+                                                        <th class="text-center">seq</th>
                                                         <th>이관명</th>
                                                         <th class="text-center">Worker ID</th>
                                                         <th class="text-center">상태</th>
@@ -152,8 +153,7 @@
                                                                 ${list.work_seq}
                                                             </td>
                                                             <td>
-                                                                <span
-                                                                    class="fw-bold text-primary">${list.mig_name}</span>
+                                                                <div class="fw-bold text-primary">${list.mig_name}</div>
                                                                 <a href="./migration-list.jsp?mig_master=${list.mig_master}" class="text-muted small text-decoration-none hover-link">(${list.mig_list_seq})</a>
                                                             </td>
                                                             <td class="text-center small text-muted">${list.worker_id}
@@ -206,12 +206,15 @@
                                                                 ${list.result_msg}
                                                             </td>
                                                             <td class="text-center small text-muted">
-                                                                <div class="d-flex align-items-center justify-content-center">
-                                                                    <fmt:formatDate value="${list.create_date}" pattern="yyyy-MM-dd HH:mm:ss" />
-                                                                    <button type="button" class="btn btn-sm btn-outline-primary ms-2 p-0" 
+                                                                <div class="mb-1">
+                                                                    <div class="fw-bold"><fmt:formatDate value="${list.create_date}" pattern="yyyy-MM-dd" /></div>
+                                                                    <div class="opacity-75"><fmt:formatDate value="${list.create_date}" pattern="HH:mm:ss" /></div>
+                                                                </div>
+                                                                <div class="d-flex justify-content-center">
+                                                                    <button type="button" class="btn btn-sm btn-outline-primary w-100" 
                                                                             onclick="reRegister('${list.mig_list_seq}', '${list.mig_name}')"
-                                                                            style="width: 24px; height: 24px; border-radius: 50%;" title="재등록 및 실행">
-                                                                        <i class="bi bi-play-fill"></i>
+                                                                            title="재등록 및 실행">
+                                                                        <i class="bi bi-play-fill"></i> 재실행
                                                                     </button>
                                                                 </div>
                                                             </td>

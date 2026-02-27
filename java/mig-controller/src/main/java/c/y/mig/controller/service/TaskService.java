@@ -13,4 +13,6 @@ public interface TaskService {
     void createChildTask(c.y.mig.model.MigrationList childTask);
 
     java.util.List<c.y.mig.model.DBConnMaster> getAllDBConnections();
+
+    java.util.List<c.y.mig.model.TypeMapping> getTypeMappings();
 }

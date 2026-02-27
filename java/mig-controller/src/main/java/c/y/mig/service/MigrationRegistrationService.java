@@ -13,10 +13,15 @@ import c.y.mig.model.MigrationList;
 import c.y.mig.util.Config;
 import c.y.mig.util.StringUtil;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 /**
  * Service for handling Migration task registration workflows.
  */
 public class MigrationRegistrationService {
+    
+    private static final Logger log = LoggerFactory.getLogger(MigrationRegistrationService.class);
     
     private final MigrationListManager migrationListManager = new MigrationListManager();
     private final MigrationMetadataService metadataService = new MigrationMetadataService();
@@ -33,9 +38,13 @@ public class MigrationRegistrationService {
         String[] target_table = (targetTableArea != null) ? targetTableArea.split("\\r?\\n") : new String[0];
 
         int threadCount = (master.getThread_count() <= 0) ? 1 : master.getThread_count();
-        String finalStrategy = (targetStrategy != null && !targetStrategy.isEmpty()) ? targetStrategy : "NORMAL";
+        String finalStrategy = (targetStrategy != null && !targetStrategy.isEmpty()) ? targetStrategy : master.getMig_type();
+        if (StringUtil.empty(finalStrategy)) finalStrategy = "NORMAL";
         
-            // Base sequence for formatted IDs
+        String finalThreadUseYn = master.getThread_use_yn();
+        if (StringUtil.empty(finalThreadUseYn)) {
+            finalThreadUseYn = finalStrategy.contains("THREAD") ? "Y" : "N";
+        }
             String baseSeq = Config.getOrdNoSequence("ML");
             int baseOrdering = master.getOrdering();
             
@@ -57,6 +66,10 @@ public class MigrationRegistrationService {
                 if (tDB != null) tType = tDB.getDb_type();
             }
 
+            // Defaults for display and execute
+            String displayYn = !StringUtil.empty(master.getDisplay_yn()) ? master.getDisplay_yn() : "Y";
+            String executeYn = !StringUtil.empty(master.getExecute_yn()) ? master.getExecute_yn() : "Y";
+
             for (int i = 0; i < source_table.length; i++) {
                 String sTable = source_table[i].trim();
                 if (sTable.isEmpty()) continue;
@@ -72,32 +85,33 @@ public class MigrationRegistrationService {
                 ml.setSource_db_type(sType);
                 ml.setTarget_db_type(tType);
                 ml.setMig_type(finalStrategy);
-                ml.setThread_use_yn(finalStrategy.contains("THREAD") ? "Y" : "N");
+                ml.setThread_use_yn(finalThreadUseYn);
                 ml.setThread_count(threadCount);
                 ml.setPage_count_per_thread(master.getPage_count_per_thread());
-                ml.setExecute_yn(master.getExecute_yn());
-                ml.setDisplay_yn(master.getDisplay_yn());
+                ml.setExecute_yn(executeYn);
+                ml.setDisplay_yn(displayYn);
                 
                 // Populate logic
-                ml.setSql_string("SELECT * FROM " + sTable);
+                if ("DDL".equals(finalStrategy) || "TABLE".equals(finalStrategy)) {
+                    ml.setSql_string(sTable);
+                } else {
+                    ml.setSql_string("SELECT * FROM " + sTable);
+                }
                 ml.setOrdering(baseOrdering + (i * 10));
                 
                 // Set mig_name to Target Table (as per user guidance/logic)
                 ml.setMig_name(tTable);
                 
-                // Store parameters (PK, Truncate) in param_string as InsertTable is removed
-                StringBuilder params = new StringBuilder();
-                if (!sPk.isEmpty()) params.append("PK=").append(sPk).append(";");
-                if (truncateYn != null && "Y".equals(truncateYn)) params.append("TRUNCATE=Y;");
-                
-                String paramStr = params.toString();
-                ml.setParam_string(paramStr);
-                
-                // System.out.println("DEBUG: BulkInsert - Table=" + sTable + ", truncateYnRaw=" + truncateYn + ", finalParams=" + paramStr);
+                ml.setTruncate_yn(truncateYn);
+                ml.setSource_pk(sPk);
+                ml.setSource_table(sTable);
+                ml.setTarget_table(tTable);
                 
                 // Formatted ID
                 String formattedIdx = String.format("%04d", i + 1);
                 String newSeq = baseSeq + "-" + formattedIdx;
+                
+                log.info("[BulkInsert] Seq: {}, Table: {}", newSeq, sTable);
                 
                 ml.setMig_list_seq(newSeq);
                 ml.setCreate_date(new Date());

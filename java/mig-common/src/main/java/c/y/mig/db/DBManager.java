@@ -86,9 +86,20 @@ public class DBManager {
             }
         }
         
+        String url = master.getJdbcUrl();
+        if (url != null && url.startsWith("jdbc:sqlserver")) {
+            if (!url.contains("encrypt=")) {
+                url += (url.endsWith(";") ? "" : ";") + "encrypt=true";
+            }
+            if (!url.contains("trustServerCertificate=")) {
+                url += (url.endsWith(";") ? "" : ";") + "trustServerCertificate=true";
+            }
+            log.info("Adjusted MSSQL URL: " + url);
+        }
+
         // Return connection
         return java.sql.DriverManager.getConnection(
-            master.getJdbcUrl(), 
+            url, 
             master.getUsername(), 
             master.getPassword()
         );

@@ -81,4 +81,23 @@ public class WorkerClient {
             return new java.util.ArrayList<>();
         }
     }
+
+    public java.util.List<c.y.mig.model.TypeMapping> getTypeMappings() {
+        try {
+            HttpHeaders headers = new HttpHeaders();
+            headers.setAccept(java.util.Collections.singletonList(MediaType.APPLICATION_JSON));
+            HttpEntity<Void> entity = new HttpEntity<>(headers);
+
+            org.springframework.core.ParameterizedTypeReference<java.util.List<c.y.mig.model.TypeMapping>> responseType =
+                    new org.springframework.core.ParameterizedTypeReference<java.util.List<c.y.mig.model.TypeMapping>>() {};
+            
+            org.springframework.http.ResponseEntity<java.util.List<c.y.mig.model.TypeMapping>> response =
+                    restTemplate.exchange(controllerUrl + "/type-mappings", HttpMethod.GET, entity, responseType);
+            
+            return response.getBody();
+        } catch (Exception e) {
+            log.error("Failed to get type mappings: " + e.getMessage());
+            return new java.util.ArrayList<>();
+        }
+    }
 }

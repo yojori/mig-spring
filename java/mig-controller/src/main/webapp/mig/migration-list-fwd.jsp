@@ -90,6 +90,7 @@
                 <li class="nav-item"><a class="nav-link active fw-bold text-warning" href="./migration-master-list.jsp">Data 이관 Master</a></li>
                 <li class="nav-item"><a class="nav-link" href="./migration-work-list.jsp">이관 진행 현황</a></li>
                 <li class="nav-item"><a class="nav-link" href="./db-con-list.jsp">DB Connection 관리</a></li>
+                <li class="nav-item"><a class="nav-link" href="./type-mapping-list.jsp">DB Type 관리</a></li>
             </ul>
         </div>
     </div>
@@ -170,23 +171,56 @@
                                     <c:if test="${list.mig_type=='NORMAL' || list.mig_type=='THREAD' || list.mig_type=='THREAD_IDX' || list.mig_type=='THREAD_MULTI'}"></a></c:if>
                                 </td>
                                 <td class="text-center small">
-                                    ${list.source_db_alias}<br>
-                                    <span class="text-muted" style="font-size:0.75rem;">${list.source_db_type}</span>
+                                    <span class="fw-bold">${list.source_db_name}</span><br>
+                                    <span class="text-muted" style="font-size:0.75rem;">[${list.source_db_alias}] ${list.source_db_type}</span>
                                 </td>
                                 <td class="text-center small">
-                                    ${list.target_db_alias}<br>
-                                    <span class="text-muted" style="font-size:0.75rem;">${list.target_db_type}</span>
+                                    <span class="fw-bold">${list.target_db_name}</span><br>
+                                    <span class="text-muted" style="font-size:0.75rem;">[${list.target_db_alias}] ${list.target_db_type}</span>
                                 </td>
                                 <td class="text-center">
-                                    <div class="btn-group btn-group-sm">
-                                        <a href="javascript:goPopupInsert('${list.mig_list_seq}');" class="btn btn-outline-secondary btn-sm" title="Insert SQL"><i class="bi bi-file-earmark-code"></i></a>
-                                        <c:if test="${list.mig_type ne 'JAVA'}">
-                                            <a href="javascript:goPopupRelation('${list.mig_list_seq}');" class="btn btn-outline-secondary btn-sm" title="Mapping"><i class="bi bi-diagram-3"></i></a>
-                                        </c:if>
-                                    </div>
+                                    <c:choose>
+                                        <c:when test="${list.mig_type eq 'TABLE' || list.mig_type eq 'DDL'}">
+                                            <div class="small text-muted">
+                                                <c:set var="showSeparator" value="false" />
+                                                <c:if test="${list.mig_type eq 'TABLE'}">
+                                                    Source: <span class="text-primary">${fn:split(fn:toUpperCase(list.sql_string), 'FROM ')[1].split(' ')[0]}</span>
+                                                    <c:set var="showSeparator" value="true" />
+                                                </c:if>
+                                                <c:if test="${not empty list.source_pk && list.mig_type ne 'DDL'}">
+                                                    <c:if test="${showSeparator}"> | </c:if>
+                                                    PK: <span class="text-danger">${list.source_pk}</span>
+                                                    <c:set var="showSeparator" value="true" />
+                                                </c:if>
+                                                <c:if test="${list.truncate_yn eq 'Y'}">
+                                                    <c:if test="${showSeparator}"> | </c:if>
+                                                    <c:choose>
+                                                        <c:when test="${list.mig_type eq 'DDL'}">
+                                                            <span class="badge bg-danger">DROP</span>
+                                                        </c:when>
+                                                        <c:otherwise>
+                                                            <span class="badge bg-warning text-dark">TRUNCATE</span>
+                                                        </c:otherwise>
+                                                    </c:choose>
+                                                </c:if>
+                                            </div>
+                                        </c:when>
+                                        <c:otherwise>
+                                            <div class="btn-group btn-group-sm">
+                                                <a href="javascript:goPopupInsert('${list.mig_list_seq}');" class="btn btn-outline-secondary btn-sm" title="Insert SQL"><i class="bi bi-file-earmark-code"></i></a>
+                                                <c:if test="${list.mig_type ne 'JAVA'}">
+                                                    <a href="javascript:goPopupRelation('${list.mig_list_seq}');" class="btn btn-outline-secondary btn-sm" title="Mapping"><i class="bi bi-diagram-3"></i></a>
+                                                </c:if>
+                                            </div>
+                                        </c:otherwise>
+                                    </c:choose>
                                 </td>
-                                <td class="text-center">${list.thread_count}</td>
-                                <td class="text-center">${list.page_count_per_thread}</td>
+                                <td class="text-center">
+                                    <c:if test="${list.mig_type ne 'DDL'}">${list.thread_count}</c:if>
+                                </td>
+                                <td class="text-center">
+                                    <c:if test="${list.mig_type ne 'DDL'}">${list.page_count_per_thread}</c:if>
+                                </td>
                                 <td class="text-center">
                                      <c:choose>
                                         <c:when test="${list.display_yn eq 'Y'}"><span class="badge bg-success status-badge">Y</span></c:when>

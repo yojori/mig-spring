@@ -24,10 +24,10 @@ if %errorlevel% neq 0 (
 
 if "%WORKER_ID%"=="" (
     echo Starting Migration Worker [Default ID]...
-    call mvn spring-boot:run
+    call mvn spring-boot:run -Dfile.encoding=UTF-8
 ) else (
     echo Starting Migration Worker [ID: %WORKER_ID%]...
-    call mvn spring-boot:run -Dspring-boot.run.jvmArguments="-Dworker.id=%WORKER_ID%"
+    call mvn spring-boot:run -Dfile.encoding=UTF-8 -Dspring-boot.run.jvmArguments="-Dworker.id=%WORKER_ID%"
 )
 
 if %errorlevel% neq 0 (

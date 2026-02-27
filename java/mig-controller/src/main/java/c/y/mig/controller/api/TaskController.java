@@ -56,4 +56,9 @@ public class TaskController {
     public java.util.List<c.y.mig.model.DBConnMaster> getDBConnections() {
         return taskService.getAllDBConnections();
     }
+
+    @GetMapping(value = "/type-mappings", produces = MediaType.APPLICATION_JSON_VALUE)
+    public java.util.List<c.y.mig.model.TypeMapping> getTypeMappings() {
+        return taskService.getTypeMappings();
+    }
 }

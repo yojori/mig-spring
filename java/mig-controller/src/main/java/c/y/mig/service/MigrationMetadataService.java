@@ -7,9 +7,9 @@ import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
+import c.y.mig.model.InsertTable;
+import c.y.mig.manager.InsertTableManager;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -103,7 +103,7 @@ public class MigrationMetadataService {
                     sourceColCount = sourceMeta.getColumnCount();
                     log.info("Successfully fetched source metadata. Columns: {}", sourceColCount);
                 } catch (Exception e) {
-                    log.error("Failed to fetch source metadata for query: " + sourceBaseQuery + ". Error: " + e.getMessage());
+                    log.warn("Source metadata fetch skipped or failed for: {}. (Reason: {})", sourceBaseQuery, e.getMessage());
                 }
             } else {
                 log.warn("Skipping source metadata fetch due to missing connection. Task: {}", ml.getMig_list_seq());
@@ -126,9 +126,9 @@ public class MigrationMetadataService {
                 }
             }
 
-            // 5. Fetch Target Metadata (Isolated)
+            // 5. Fetch Target Metadata (Isolated) - Skip for DDL as target table won't exist yet
             List<String> targetCols = new ArrayList<>();
-            if (targetConn != null && !StringUtil.empty(targetTableName)) {
+            if (targetConn != null && !StringUtil.empty(targetTableName) && !"DDL".equals(ml.getMig_type())) {
                 try {
                     String targetSql = getRownum1Sql("SELECT * FROM " + targetTableName, targetDbType);
                     log.info("Executing target metadata fetch: [{}]", targetSql);
@@ -141,7 +141,7 @@ public class MigrationMetadataService {
                     DBManager.close(tRs, tStmt, null);
                     log.info("Successfully fetched target metadata for: {}", targetTableName);
                 } catch (Exception e) {
-                    log.warn("Target metadata fetch failed for table: " + targetTableName + ". Error: " + e.getMessage());
+                    log.info("Target metadata fetch skipped for table: {}. (Table may not exist yet or is DDL type)", targetTableName);
                 }
             }
 
@@ -157,12 +157,14 @@ public class MigrationMetadataService {
             is.setInsert_type("INSERT");
             is.setInsert_table(targetTableName);
             
-            // Populate PK and Truncate from param_string
-            Map<String, String> params = parseParams(ml.getParam_string());
-            String pk = params.get("PK");
-            String trunc = params.get("TRUNCATE") != null ? params.get("TRUNCATE") : "N";
+            // Populate PK and Truncate directly from ml (no more param_string)
+            String pk = ml.getSource_pk();
+            if (StringUtil.empty(pk) && sourceConn != null && ("TABLE".equals(ml.getMig_type()) || "DDL".equals(ml.getMig_type()))) {
+                pk = fetchPrimaryKey(sourceConn, sourceBaseQuery, sourceDbType);
+            }
+            String trunc = ml.getTruncate_yn() != null ? ml.getTruncate_yn() : "N";
             
-            log.info("Mapping InsertSql: PK={}, Truncate={} (from params: {})", pk, trunc, ml.getParam_string());
+            log.info("Mapping InsertSql: PK={}, Truncate={}", pk, trunc);
             
             is.setPk_column(pk);
             is.setTruncate_yn(trunc);
@@ -171,6 +173,21 @@ public class MigrationMetadataService {
             is.setCreate_date(new Date());
             is.setUpdate_date(new Date());
             ism.insert(is);
+
+            // 7. Register Insert Table for TABLE/DDL types
+            if ("TABLE".equals(ml.getMig_type()) || "DDL".equals(ml.getMig_type())) {
+                InsertTableManager itm = new InsertTableManager();
+                InsertTable it = new InsertTable();
+                it.setMig_list_seq(ml.getMig_list_seq());
+                it.setSource_table(ml.getSql_string()); // For TABLE/DDL, sql_string is the source table
+                it.setTarget_table(targetTableName);
+                it.setSource_pk(pk);
+                it.setTruncate_yn(trunc);
+                it.setCreate_date(new Date());
+                it.setUpdate_date(new Date());
+                itm.insert(it);
+                log.info("Registered InsertTable for Task: {}", ml.getMig_list_seq());
+            }
 
             // Register columns only if source metadata was successful
             if (sourceMeta != null) {
@@ -233,19 +250,54 @@ public class MigrationMetadataService {
         return rtn;
     }
 
+
     /**
-     * Helper to parse semicolon separated parameters.
+     * Helper to fetch Primary Key column names from database metadata.
      */
-    private Map<String, String> parseParams(String paramStr) {
-        Map<String, String> map = new HashMap<>();
-        if (StringUtil.empty(paramStr)) return map;
-        String[] parts = paramStr.split(";");
-        for (String part : parts) {
-            String[] kv = part.split("=");
-            if (kv.length == 2) {
-                map.put(kv[0].trim().toUpperCase(), kv[1].trim());
+    private String fetchPrimaryKey(Connection conn, String fullTableName, String dbType) {
+        if (conn == null || StringUtil.empty(fullTableName)) return null;
+        
+        String catalog = null;
+        String schema = null;
+        String table = fullTableName;
+        
+        if (fullTableName.contains(".")) {
+            String[] parts = fullTableName.split("\\.");
+            if (parts.length == 2) {
+                schema = parts[0];
+                table = parts[1];
+            } else if (parts.length == 3) {
+                catalog = parts[0];
+                schema = parts[1];
+                table = parts[2];
             }
         }
-        return map;
+        
+        // Remove quotes if present
+        table = table.replace("\"", "").replace("[", "").replace("]", "").replace("`", "");
+        if (schema != null) schema = schema.replace("\"", "").replace("[", "").replace("]", "").replace("`", "");
+        
+        List<String> pks = new ArrayList<>();
+        ResultSet rs = null;
+        try {
+            // Some DBs need exact casing (Oracle usually UPPER, etc.)
+            rs = conn.getMetaData().getPrimaryKeys(catalog, schema, table);
+            while (rs.next()) {
+                pks.add(rs.getString("COLUMN_NAME"));
+            }
+            
+            if (pks.isEmpty()) {
+                rs = conn.getMetaData().getPrimaryKeys(catalog, (schema != null ? schema.toUpperCase() : null), table.toUpperCase());
+                while (rs.next()) {
+                    pks.add(rs.getString("COLUMN_NAME"));
+                }
+            }
+        } catch (SQLException e) {
+            log.warn("Failed to fetch primary keys for {}: {}", fullTableName, e.getMessage());
+        } finally {
+            DBManager.close(rs, null, null);
+        }
+        
+        return pks.isEmpty() ? null : String.join(",", pks);
     }
 }
