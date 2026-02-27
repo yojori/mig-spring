@@ -5,20 +5,33 @@
 <%@ page import="java.util.*" %>
 <%@include file="/mig/session-admin-check.jsp" %>
 <% 
-    InsertColumn search=(InsertColumn) RequestUtils.getBean(request, InsertColumn.class);
-    InsertColumnManager manager=new InsertColumnManager(); SelectColumnManager sm=new
-    SelectColumnManager(); if ("insertAll".equals(search.getMode())) { String[]
-    insert_column_seq=request.getParameterValues("insert_column_seq"); String[]
-    insert_data=request.getParameterValues("insert_data"); String[]
-    insert_value=request.getParameterValues("insert_value"); for (int i=0; i <
-    insert_column_seq.length; i++) { InsertColumn insertC=new InsertColumn();
-    insertC.setInsert_column_seq(insert_column_seq[i]); insertC.setInsert_data(insert_data[i]);
-    insertC.setInsert_value(insert_value[i]); insertC.setUpdate_date(new Date());
-    manager.update(insertC); } } else if ("deleteColumn".equals(search.getMode())) { String
-    deleteColumnSeq=request.getParameter("deleteColumnSeq");
-    search.setInsert_column_seq(deleteColumnSeq); manager.delete(search);
-    search.setInsert_column_seq(""); } List<InsertColumn> list = manager.getList(search,
-    InterfaceManager.LIST);
+    InsertColumn search = (InsertColumn) RequestUtils.getBean(request, InsertColumn.class);
+    InsertColumnManager manager = new InsertColumnManager();
+    SelectColumnManager sm = new SelectColumnManager();
+    
+    if ("insertAll".equals(search.getMode())) {
+        String[] insert_column_seq = request.getParameterValues("insert_column_seq");
+        String[] insert_data = request.getParameterValues("insert_data");
+        String[] insert_value = request.getParameterValues("insert_value");
+        
+        if (insert_column_seq != null) {
+            for (int i = 0; i < insert_column_seq.length; i++) {
+                InsertColumn insertC = new InsertColumn();
+                insertC.setInsert_column_seq(insert_column_seq[i]);
+                insertC.setInsert_data(insert_data[i]);
+                insertC.setInsert_value(insert_value[i]);
+                insertC.setUpdate_date(new Date());
+                manager.update(insertC);
+            }
+        }
+    } else if ("deleteColumn".equals(search.getMode())) {
+        String deleteColumnSeq = request.getParameter("deleteColumnSeq");
+        search.setInsert_column_seq(deleteColumnSeq);
+        manager.delete(search);
+        search.setInsert_column_seq("");
+    }
+    
+    List<InsertColumn> list = manager.getList(search, InterfaceManager.LIST);
 
     SelectColumn column = new SelectColumn();
     column.setMig_list_seq(search.getMig_list_seq());

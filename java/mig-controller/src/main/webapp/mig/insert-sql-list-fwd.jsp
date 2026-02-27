@@ -156,53 +156,57 @@
                             <th width="28%">관리</th>
                         </tr>
                     </thead>
-                    <tbody>
-                        <%-- Existing Data List --%>
-                        <c:forEach items="${list}" var="list" >
-                        <input type="hidden" name="insert_sql_seq" value="${list.insert_sql_seq}" />
+                     <tbody>
+                         <c:set var="hasData" value="${fn:length(list) > 0}" />
+                        
+                        <%-- Show only one configuration row --%>
                         <tr> 
-                            <td><jaes:codeselect name="insert_type" id="insert_type" group="pageCode.code.code-0007" selected="${list.insert_type}" /></td>
-                            <td><input type="text" class="form-control form-control-sm" name="insert_table" value="${list.insert_table}" placeholder="${migList.mig_type eq 'JAVA' ? 'Class.Method' : 'Table Name'}" /></td>
-                            <td><input type="text" class="form-control form-control-sm" name="pk_column" value="${list.pk_column}" placeholder="${migList.mig_type eq 'JAVA' ? 'Partition Key' : 'PK Column'}" /></td>
+                            <input type="hidden" name="insert_sql_seq" value="${hasData ? list[0].insert_sql_seq : ''}" />
+                            
+                            <td><jaes:codeselect name="insert_type" id="insert_type" group="pageCode.code.code-0007" selected="${hasData ? list[0].insert_type : migList.insert_type}" /></td>
+                            
+                            <td>
+                                <input type="text" class="form-control form-control-sm" name="insert_table" 
+                                       value="${hasData ? list[0].insert_table : migList.target_table}" 
+                                       placeholder="${migList.mig_type eq 'JAVA' ? 'Class.Method' : 'Table Name'}" />
+                            </td>
+                            
+                            <td>
+                                <input type="text" class="form-control form-control-sm" name="pk_column" 
+                                       value="${hasData ? list[0].pk_column : migList.source_pk}" 
+                                       placeholder="${migList.mig_type eq 'JAVA' ? 'Partition Key' : 'PK Column'}" />
+                            </td>
+                            
                             <td>
                                 <div class="form-check d-flex justify-content-center">
-                                    <input type="hidden" name="truncate_yn" value="${list.truncate_yn == 'Y' ? 'Y' : 'N'}">
-                                    <input class="form-check-input" type="checkbox" <c:if test="${list.truncate_yn == 'Y'}"> checked</c:if> onclick="this.parentNode.getElementsByTagName('input')[0].value = this.checked ? 'Y' : 'N';">
+                                    <input type="hidden" name="truncate_yn" value="${(hasData ? list[0].truncate_yn : migList.truncate_yn) == 'Y' ? 'Y' : 'N'}">
+                                    <input class="form-check-input" type="checkbox" <c:if test="${(hasData ? list[0].truncate_yn : migList.truncate_yn) == 'Y'}"> checked</c:if> onclick="this.parentNode.getElementsByTagName('input')[0].value = this.checked ? 'Y' : 'N';">
                                 </div>
                             </td>
-                            <td class="small text-muted">${list.create_date}</td>
+                            
+                            <td class="small text-muted">
+                                <c:choose>
+                                    <c:when test="${hasData}">${list[0].create_date}</c:when>
+                                    <c:otherwise>-</c:otherwise>
+                                </c:choose>
+                            </td>
+                            
                             <td>
                                 <div class="btn-group btn-group-sm">
                                     <c:if test="${migList.mig_type ne 'JAVA'}">
-                                    <button type="button" class="btn btn-outline-primary" onclick="goAutocolumn('${list.insert_sql_seq}','${list.insert_table}');">
-                                        <i class="bi bi-magic"></i> 컬럼생성
-                                    </button>
+                                        <button type="button" class="btn btn-outline-primary" 
+                                                onclick="goAutocolumn('${hasData ? list[0].insert_sql_seq : ''}','${hasData ? list[0].insert_table : migList.target_table}');">
+                                            <i class="bi bi-magic"></i> 컬럼생성
+                                        </button>
                                     </c:if>
-                                    <button type="button" class="btn btn-outline-danger" onclick="goDelete('${list.insert_sql_seq}','${list.insert_table}');">
-                                        <i class="bi bi-trash"></i> 삭제
-                                    </button>
+                                    <c:if test="${hasData}">
+                                        <button type="button" class="btn btn-outline-danger" onclick="goDelete('${list[0].insert_sql_seq}','${list[0].insert_table}');">
+                                            <i class="bi bi-trash"></i> 삭제
+                                        </button>
+                                    </c:if>
                                 </div>
                             </td>
                         </tr>
-                        </c:forEach>
-                        
-                        <%-- Empty Inputs for New Registration (5 rows) --%>
-                        <c:forEach begin="1" end="5" var="cnt" varStatus="status" >
-                        <tr> 
-                            <input type="hidden" name="insert_sql_seq" value="" />
-                            <td><jaes:codeselect name="insert_type" id="insert_type" group="pageCode.code.code-0007" /></td>
-                            <td><input type="text" class="form-control form-control-sm" name="insert_table" value="" placeholder="${migList.mig_type eq 'JAVA' ? 'Class.Method' : 'Table Name'}" /></td>
-                            <td><input type="text" class="form-control form-control-sm" name="pk_column" value="" placeholder="${migList.mig_type eq 'JAVA' ? 'Partition Key' : 'PK Column'}" /></td>
-                            <td>
-                                <div class="form-check d-flex justify-content-center">
-                                    <input type="hidden" name="truncate_yn" value="N">
-                                    <input class="form-check-input" type="checkbox" onclick="this.parentNode.getElementsByTagName('input')[0].value = this.checked ? 'Y' : 'N';">
-                                </div>
-                            </td>
-                            <td class="small text-muted">-</td>
-                            <td><span class="badge bg-light text-secondary">신규 등록</span></td>
-                        </tr>
-                        </c:forEach>
                     </tbody>
                 </table>
             </div>

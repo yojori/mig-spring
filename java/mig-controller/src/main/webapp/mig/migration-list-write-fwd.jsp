@@ -255,12 +255,16 @@
                                             <input type="hidden" name="source_pk" value="${master.source_pk}">
                                         </c:if>
                                         <div class="row g-3 mt-1">
-                                            <div class="col-md-12">
+                                            <div class="col-md-6">
                                                 <label class="form-label" id="truncate_label">데이터 삭제 여부</label>
                                                 <select name="truncate_yn" class="form-select border-warning">
                                                     <option value="N" <c:if test="${master.truncate_yn eq 'N'}">selected</c:if>>N (데이터 유지)</option>
                                                     <option value="Y" <c:if test="${master.truncate_yn eq 'Y'}">selected</c:if>>Y (기존 데이터 삭제)</option>
                                                 </select>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <label class="form-label">저장 방식 (Insert Type)</label>
+                                                <jaes:codeselect name="insert_type" id="insert_type" group="pageCode.code.code-0007" selected="${master.insert_type}" />
                                             </div>
                                         </div>
                                         </div>

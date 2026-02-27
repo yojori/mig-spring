@@ -54,6 +54,7 @@ public class MigrationListManager extends Manager {
         sql.addField("A.create_date");
         sql.addField("A.update_date");
         sql.addField("A.display_yn");
+        sql.addField("A.truncate_yn");
 
         sql.addFrom(MIGRATION_LIST + " A");
         sql.addInnerJoin(DB_MASTER + " B", "A.source_db_alias = B.master_code");
@@ -186,6 +187,7 @@ public class MigrationListManager extends Manager {
                     entity.setCreate_date(rs.getDate("create_date"));
                     entity.setUpdate_date(rs.getDate("update_date"));
                     entity.setDisplay_yn(rs.getString("display_yn"));
+                    entity.setTruncate_yn(rs.getString("truncate_yn"));
                     
                     list.add(entity);
                     i++;

@@ -29,7 +29,9 @@ public class InsertColumnManager extends Manager {
             con = DBManager.getConnection();
             Select sql = new Select();
             sql.addField("A.*");
+            sql.addField("B.insert_type, B.target_table as insert_table");
             sql.addFrom(INSERT_COLUMN + " A");
+            sql.addLeftJoin(MIGRATION_LIST + " B", "A.mig_list_seq = B.mig_list_seq");
             
             if (table.getMig_list_seq() != null && !table.getMig_list_seq().isEmpty()) {
                 sql.addWhere("A.mig_list_seq = ?", table.getMig_list_seq());
@@ -50,10 +52,8 @@ public class InsertColumnManager extends Manager {
                 entity.setCreate_date(rs.getDate("create_date"));
                 entity.setUpdate_date(rs.getDate("update_date"));
                 
-                try {
-                	entity.setInsert_type(rs.getString("insert_type"));
-                	entity.setInsert_table(rs.getString("insert_table"));
-                } catch (Exception e) {}
+                entity.setInsert_type(rs.getString("insert_type"));
+                entity.setInsert_table(rs.getString("insert_table"));
                 
                 list.add(entity);
             }

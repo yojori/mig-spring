@@ -180,6 +180,14 @@
                                 </td>
                                 <td class="text-center">
                                     <div class="small">
+                                        <c:if test="${list.truncate_yn eq 'Y'}">
+                                            <div class="mb-1">
+                                                <c:choose>
+                                                    <c:when test="${list.mig_type eq 'DDL'}"><span class="badge bg-danger">DROP</span></c:when>
+                                                    <c:otherwise><span class="badge bg-warning text-dark">TRUNCATE</span></c:otherwise>
+                                                </c:choose>
+                                            </div>
+                                        </c:if>
                                         <div class="btn-group btn-group-sm">
                                             <c:if test="${list.mig_type=='NORMAL' || list.mig_type=='THREAD' || list.mig_type=='THREAD_IDX' || list.mig_type=='THREAD_MULTI'}">
                                                 <a href="javascript:goPopupSelect('${list.mig_list_seq}');" class="btn btn-outline-primary btn-sm" title="Columns"><i class="bi bi-card-checklist"></i></a>
