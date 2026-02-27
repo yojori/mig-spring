@@ -33,38 +33,38 @@ public class ZXX_RownumMigrationStrategy extends AbstractMigrationStrategy {
         logStart(workList.getMig_name());
 
         // 1. 유효성 검사 및 테이블 정보 획득
-        List<InsertTable> tables = schema.getInsertTableList();
         String tableName = null;
-        String pkCol = null;
+        String pkCol = workList.getSource_pk();
 
-        if (tables != null && !tables.isEmpty()) {
-            InsertTable sourceTableObj = tables.get(0);
-            tableName = sourceTableObj.getSource_table();
-            pkCol = sourceTableObj.getSource_pk();
-        } else {
-            // 대체 로직: InsertTable이 없는 경우 SQL 문자열(sql_string)을 소스로 사용
-            // 단, ROWNUM 전략은 테이블명과 PK 컬럼명이 필수적임.
-            // 필요하다면 sql_string 파싱 로직 추가 가능하나, 현재는 설정값을 권장.
-            String sqlSource = workList.getSql_string();
-            if (!StringUtil.empty(sqlSource)) {
-                String trimmed = sqlSource.trim();
-                if (trimmed.toUpperCase().startsWith("SELECT")) {
-                    // Try to unwrap simple "SELECT * FROM table" to avoid subquery nesting
-                    java.util.regex.Pattern p = java.util.regex.Pattern.compile("(?i)^SELECT\\s+\\*\\s+FROM\\s+([a-zA-Z0-9_.]+)$");
-                    java.util.regex.Matcher m = p.matcher(trimmed);
-                    if (m.find()) {
-                        tableName = m.group(1);
-                    } else {
-                        tableName = "(" + trimmed + ") T_SOURCE";
-                    }
-                } else {
-                    tableName = trimmed;
-                } 
-                 // PK는 InsertSql에서 추론 시도
-                 List<InsertSql> sqlList = schema.getInsertSqlList();
-                if (sqlList != null && !sqlList.isEmpty()) {
-                    pkCol = sqlList.get(0).getPk_column();
-                }
+        String sqlSource = workList.getSql_string();
+        if (!StringUtil.empty(sqlSource)) {
+            String trimmed = sqlSource.trim();
+            if (trimmed.toUpperCase().startsWith("SELECT")) {
+                 java.util.regex.Pattern p = java.util.regex.Pattern.compile("(?i)^SELECT\\s+\\*\\s+FROM\\s+([a-zA-Z0-9_.]+)$");
+                 java.util.regex.Matcher m = p.matcher(trimmed);
+                 if (m.find()) {
+                     tableName = m.group(1);
+                 } else {
+                     tableName = "(" + trimmed + ") T_SOURCE";
+                 }
+            } else {
+                tableName = trimmed;
+            }
+        }
+        
+        // Legacy fallbacks
+        if (StringUtil.empty(tableName)) {
+            List<InsertTable> tables = schema.getInsertTableList();
+            if (tables != null && !tables.isEmpty()) {
+                tableName = tables.get(0).getSource_table();
+                if (StringUtil.empty(pkCol)) pkCol = tables.get(0).getSource_pk();
+            }
+        }
+
+        if (StringUtil.empty(pkCol)) {
+            List<InsertSql> sqlList = schema.getInsertSqlList();
+            if (sqlList != null && !sqlList.isEmpty()) {
+                pkCol = sqlList.get(0).getPk_column();
             }
         }
 
@@ -206,12 +206,23 @@ public class ZXX_RownumMigrationStrategy extends AbstractMigrationStrategy {
             targetConn = dynamicDataSource.getConnection(schema.getTarget());
             targetConn.setAutoCommit(false);
             
-            List<InsertSql> sqlList = schema.getInsertSqlList();
-            targetPstmts = new PreparedStatement[sqlList.size()];
-            for (int i = 0; i < sqlList.size(); i++) {
-                String query = buildTargetQuery(sqlList.get(i), schema.getInsertColumnList(), schema.getTarget().getDb_type());
-                if (query != null) {
-                    targetPstmts[i] = targetConn.prepareStatement(query);
+            List<c.y.mig.model.InsertColumn> allColumns = schema.getInsertColumnList();
+            String targetQuery = buildTargetQuery(workList, allColumns, schema.getTarget().getDb_type());
+            
+            if (targetQuery != null) {
+                targetPstmts = new PreparedStatement[1];
+                targetPstmts[0] = targetConn.prepareStatement(targetQuery);
+            } else {
+                // Legacy fallback
+                List<InsertSql> sqlList = schema.getInsertSqlList();
+                if (sqlList != null) {
+                    targetPstmts = new PreparedStatement[sqlList.size()];
+                    for (int i = 0; i < sqlList.size(); i++) {
+                        String query = buildTargetQuery(sqlList.get(i), allColumns, schema.getTarget().getDb_type());
+                        if (query != null) {
+                            targetPstmts[i] = targetConn.prepareStatement(query);
+                        }
+                    }
                 }
             }
 
@@ -221,18 +232,12 @@ public class ZXX_RownumMigrationStrategy extends AbstractMigrationStrategy {
             StringBuilder whereClause = new StringBuilder();
             List<Object> params = new ArrayList<>();
             
-            // (PK1, PK2) >= (Val1, Val2) logic is complex in standard SQL if not supported directly.
-            // Simplified: Assuming standard SQL row comparison is supported: (a,b) >= (c,d)
-            // Or use explicit expansion: (a > c) OR (a = c AND b >= d)
-            // Ideally target DB supports tuple comparison. Oracle/Postgres/MySQL do.
-            
             String pkList = String.join(", ", pkCols);
             String bindParams = "";
             for(int i=0; i<pkCols.length; i++) bindParams += (i==0 ? "?" : ",?");
             
             whereClause.append(" (").append(pkList).append(") >= (").append(bindParams).append(") ");
             for(String col : pkCols) params.add(startKey.get(col.toUpperCase()));
-            
             
             // Range Logic: Use Upper Bound
             if (nextKey != null) {
@@ -244,7 +249,6 @@ public class ZXX_RownumMigrationStrategy extends AbstractMigrationStrategy {
             String sqlSource = "SELECT * FROM " + tableName + " WHERE " + whereClause.toString();
             
             log.info("Chunk [{}] Query: {}", chunkIndex, sqlSource);
-            // log params if needed
             
             sourcePstmt = sourceConn.prepareStatement(sqlSource);
             
@@ -256,26 +260,43 @@ public class ZXX_RownumMigrationStrategy extends AbstractMigrationStrategy {
             ResultSetMetaData meta = sourceRs.getMetaData();
             int colCount = meta.getColumnCount();
             
+            // Optimization: Cache column names
+            String[] colNames = new String[colCount];
+            for (int i = 1; i <= colCount; i++) {
+                colNames[i-1] = meta.getColumnName(i).toUpperCase();
+            }
+
             int rowCount = 0;
+            boolean isOneToOne = (targetQuery != null);
+            List<InsertSql> sqlList = schema.getInsertSqlList();
+
             while (sourceRs.next()) {
                 Map<String, Object> row = new HashMap<>();
-                for (int i = 1; i <= colCount; i++) {
-                    String colName = meta.getColumnName(i).toUpperCase();
-                    row.put(colName, sourceRs.getObject(i));
+                for (int i = 0; i < colCount; i++) {
+                    row.put(colNames[i], sourceRs.getObject(i + 1));
                 }
 
-                for (int i = 0; i < sqlList.size(); i++) {
-                    if (targetPstmts[i] == null) continue;
-                    setTargetParams(targetPstmts[i], sqlList.get(i), schema.getInsertColumnList(), row);
-                    targetPstmts[i].addBatch();
+                if (isOneToOne) {
+                    if (targetPstmts != null && targetPstmts[0] != null) {
+                        setTargetParams(targetPstmts[0], workList, allColumns, row);
+                        targetPstmts[0].addBatch();
+                    }
+                } else if (targetPstmts != null) {
+                    for (int i = 0; i < targetPstmts.length; i++) {
+                        if (targetPstmts[i] == null) continue;
+                        setTargetParams(targetPstmts[i], sqlList.get(i), allColumns, row);
+                        targetPstmts[i].addBatch();
+                    }
                 }
                 rowCount++;
             }
             
             totalRead.addAndGet(rowCount);
 
-            executeBatch(targetPstmts);
-            targetConn.commit();
+            if (rowCount > 0 && targetPstmts != null) {
+                executeBatch(targetPstmts);
+                targetConn.commit();
+            }
             
             totalProcessed.addAndGet(rowCount);
             log.info("Chunk [{}] Finished. Rows: {}", chunkIndex, rowCount);

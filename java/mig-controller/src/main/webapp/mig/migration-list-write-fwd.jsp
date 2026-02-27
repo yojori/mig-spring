@@ -84,7 +84,6 @@
                 if (type == "DDL") {
                     $("#truncate_label").text("기존 테이블 삭제 (DROP) 여부");
                     $("#sql_label").text("SQL 문장 또는 대상 테이블명");
-                    $("#individual_table_inputs").hide();
                     $("#single_sql_area").show();
                     
                     // Disable bulk areas for DDL single edit
@@ -93,7 +92,6 @@
                 } else if (type == "TABLE") {
                     $("#truncate_label").text("기존 데이터 삭제 (TRUNCATE) 여부");
                     $("#sql_label").text("대상 테이블명");
-                    $("#individual_table_inputs").show();
                     $("#single_sql_area").hide(); // Use individual fields for TABLE
                     
                     // Disable PK for TABLE (Source metadata is used)
@@ -102,7 +100,6 @@
                 } else {
                     $("#truncate_label").text("기존 데이터 삭제 (TRUNCATE) 여부");
                     $("#sql_label").text("SQL 문장 또는 대상 테이블명");
-                    $("#individual_table_inputs").hide();
                     $("#single_sql_area").show();
                     
                     $("textarea[name='source_pk_area']").prop("disabled", false).removeClass("bg-light");
@@ -252,20 +249,11 @@
                             <div id="step-2" class="step-container">
                                 <div class="row g-3">
                                     <div id="table_settings_area" class="col-12 bg-light p-3 rounded-3 border mb-3" style="display:none;">
-                                        <div class="row g-3" id="individual_table_inputs">
-                                            <div class="col-md-4">
-                                                <label class="form-label">소스 테이블 (Source)</label>
-                                                <input type="text" name="source_table" class="form-control" value="${master.source_table}" placeholder="예: TB_SAMPLE">
-                                            </div>
-                                            <div class="col-md-4">
-                                                <label class="form-label">타겟 테이블 (Target)</label>
-                                                <input type="text" name="target_table" class="form-control" value="${master.target_table}" placeholder="예: TB_SAMPLE_TARGET">
-                                            </div>
-                                            <div class="col-md-4">
-                                                <label class="form-label">소스 PK (필터링/정렬용)</label>
-                                                <input type="text" name="source_pk" class="form-control" value="${master.source_pk}" placeholder="예: ID">
-                                            </div>
-                                        </div>
+                                        <c:if test="${master.mode eq 'update'}">
+                                            <input type="hidden" name="source_table" value="${master.source_table}">
+                                            <input type="hidden" name="target_table" value="${master.target_table}">
+                                            <input type="hidden" name="source_pk" value="${master.source_pk}">
+                                        </c:if>
                                         <div class="row g-3 mt-1">
                                             <div class="col-md-12">
                                                 <label class="form-label" id="truncate_label">데이터 삭제 여부</label>

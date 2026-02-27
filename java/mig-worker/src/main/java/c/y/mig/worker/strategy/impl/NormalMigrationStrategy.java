@@ -11,7 +11,6 @@ import java.util.Map;
 
 import org.springframework.stereotype.Component;
 
-import c.y.mig.db.query.Select;
 import c.y.mig.model.InsertColumn;
 import c.y.mig.model.InsertSql;
 import c.y.mig.model.InsertTable;
@@ -40,34 +39,27 @@ public class NormalMigrationStrategy extends AbstractMigrationStrategy {
             // 1. Prepare Source connection & Query
             sourceConn = dynamicDataSource.getConnection(schema.getSource());
             
-            String sqlSource;
-            List<InsertTable> tables = schema.getInsertTableList();
+            String sqlSource = workList.getSql_string();
+            String pkCol = workList.getSource_pk();
             
-            if (tables != null && !tables.isEmpty()) {
-                InsertTable insertT = tables.get(0);
-                Select select = new Select();
-                select.addField(" * ");
-                select.addFrom(insertT.getSource_table());
-                if (!StringUtil.empty(insertT.getSource_pk())) {
-                    select.addOrder(insertT.getSource_pk());
+            // Legacy fallbacks
+            if (StringUtil.empty(sqlSource)) {
+                List<InsertTable> tables = schema.getInsertTableList();
+                if (tables != null && !tables.isEmpty()) {
+                    InsertTable it = tables.get(0);
+                    sqlSource = "SELECT * FROM " + it.getSource_table();
+                    if (StringUtil.empty(pkCol)) pkCol = it.getSource_pk();
                 }
-                sqlSource = select.toQuery();
-            } else if (!StringUtil.empty(workList.getSql_string())) {
-                sqlSource = workList.getSql_string();
-                
-                // If InsertTable is empty, try to get PK from InsertSql for ordering
-                List<InsertSql> sqlList = schema.getInsertSqlList();
-                if (sqlList != null && !sqlList.isEmpty()) {
-                    String pkCol = sqlList.get(0).getPk_column();
-                    if (!StringUtil.empty(pkCol)) {
-                        // Very simple check to see if we can append ORDER BY
-                        String upperSql = sqlSource.toUpperCase();
-                        if (!upperSql.contains("ORDER BY") && !upperSql.contains("GROUP BY")) {
-                            sqlSource += " ORDER BY " + pkCol;
-                        }
-                    }
+            }
+
+            if (!StringUtil.empty(pkCol)) {
+                String upperSql = sqlSource.toUpperCase();
+                if (!upperSql.contains("ORDER BY") && !upperSql.contains("GROUP BY")) {
+                    sqlSource += " ORDER BY " + pkCol;
                 }
-            } else {
+            }
+
+            if (StringUtil.empty(sqlSource)) {
                 log.warn("No Source defined (Table or SQL)!");
                 return;
             }
@@ -85,31 +77,27 @@ public class NormalMigrationStrategy extends AbstractMigrationStrategy {
             targetConn = dynamicDataSource.getConnection(schema.getTarget());
             targetConn.setAutoCommit(false);
             
-            List<InsertSql> sqlList = schema.getInsertSqlList();
-            if (sqlList == null || sqlList.isEmpty()) {
-                log.warn("No Target Insert SQLs defined!");
+            // Determine Target Info (Preferred: workList, Fallback: sqlList)
+            String targetTable = workList.getTarget_table();
+            if (StringUtil.empty(targetTable)) {
+                List<InsertSql> sqlList = schema.getInsertSqlList();
+                if (sqlList != null && !sqlList.isEmpty()) {
+                    targetTable = sqlList.get(0).getInsert_table();
+                }
+            }
+
+            if (StringUtil.empty(targetTable)) {
+                log.warn("No Target Table defined!");
                 return;
             }
 
-            targetPstmts = new PreparedStatement[sqlList.size()];
-            List<List<c.y.mig.model.InsertColumn>> filteredColumnsList = new java.util.ArrayList<>();
             List<InsertColumn> allColumns = schema.getInsertColumnList();
-
-            for (int i = 0; i < sqlList.size(); i++) {
-                InsertSql iSql = sqlList.get(i);
-                List<c.y.mig.model.InsertColumn> filtered = new java.util.ArrayList<>();
-                for (InsertColumn col : allColumns) {
-                    if (iSql.getInsert_sql_seq().equals(col.getInsert_sql_seq())) {
-                        filtered.add(col);
-                    }
-                }
-                filteredColumnsList.add(filtered);
-                
-                String query = buildTargetQuery(iSql, filtered, schema.getTarget().getDb_type());
-                log.debug("Target SQL [{}]: {}", i, query);
-                if (query != null) {
-                    targetPstmts[i] = targetConn.prepareStatement(query);
-                }
+            String query = buildTargetQuery(workList, allColumns, schema.getTarget().getDb_type());
+            log.info("Target SQL: {}", query);
+            
+            targetPstmts = new PreparedStatement[1];
+            if (query != null) {
+                targetPstmts[0] = targetConn.prepareStatement(query);
             }
 
             // 3. Iterate and Batch Insert
@@ -139,10 +127,9 @@ public class NormalMigrationStrategy extends AbstractMigrationStrategy {
                     row.put(colNames[i-1], sourceRs.getObject(i));
                 }
 
-                for (int i = 0; i < sqlList.size(); i++) {
-                    if (targetPstmts[i] == null) continue;
-                    setTargetParams(targetPstmts[i], sqlList.get(i), filteredColumnsList.get(i), row);
-                    targetPstmts[i].addBatch();
+                if (targetPstmts[0] != null) {
+                    setTargetParams(targetPstmts[0], workList, allColumns, row);
+                    targetPstmts[0].addBatch();
                 }
 
                 rowCount++;

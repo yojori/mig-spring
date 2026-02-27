@@ -41,33 +41,44 @@ public abstract class AbstractMigrationStrategy implements MigrationStrategy {
         java.sql.Connection targetConn = null;
         try {
             targetConn = dynamicDataSource.getConnection(schema.getTarget());
-            java.util.Set<String> truncatedTables = new java.util.HashSet<>();
             
-            // Check Tables List
-            java.util.List<InsertTable> tables = schema.getInsertTableList();
-            if (tables != null && !tables.isEmpty()) {
-                for (InsertTable t : tables) {
-                    if ("Y".equalsIgnoreCase(c.y.mig.util.StringUtil.nvl(t.getTruncate_yn()))) {
-                        String tableName = t.getTarget_table();
-                        if (tableName != null && !truncatedTables.contains(tableName)) {
-                            log.info("[PREPARE] Truncating Table (from Tables): {}", tableName);
-                            executeTruncate(targetConn, quoteIdentifier(tableName, schema.getTarget().getDb_type()));
-                            truncatedTables.add(tableName);
+            // Check MigrationList directly (Preferred 1:1 structure)
+            if ("Y".equalsIgnoreCase(c.y.mig.util.StringUtil.nvl(workList.getTruncate_yn()))) {
+                String tableName = workList.getTarget_table();
+                if (tableName != null && !tableName.isEmpty()) {
+                    log.info("[PREPARE] Truncating Table (from MigrationList): {}", tableName);
+                    executeTruncate(targetConn, quoteIdentifier(tableName, schema.getTarget().getDb_type()));
+                }
+            } else {
+                // Legacy support (check Tables and SQLs if workList truncate is N)
+                java.util.Set<String> truncatedTables = new java.util.HashSet<>();
+                
+                // Check Tables List
+                java.util.List<InsertTable> tables = schema.getInsertTableList();
+                if (tables != null && !tables.isEmpty()) {
+                    for (InsertTable t : tables) {
+                        if ("Y".equalsIgnoreCase(c.y.mig.util.StringUtil.nvl(t.getTruncate_yn()))) {
+                            String tableName = t.getTarget_table();
+                            if (tableName != null && !truncatedTables.contains(tableName)) {
+                                log.info("[PREPARE] Truncating Table (from Tables): {}", tableName);
+                                executeTruncate(targetConn, quoteIdentifier(tableName, schema.getTarget().getDb_type()));
+                                truncatedTables.add(tableName);
+                            }
                         }
                     }
                 }
-            }
-            
-            // Check SQL List
-            java.util.List<InsertSql> sqlList = schema.getInsertSqlList();
-            if (sqlList != null && !sqlList.isEmpty()) {
-                for (InsertSql s : sqlList) {
-                    if ("Y".equalsIgnoreCase(c.y.mig.util.StringUtil.nvl(s.getTruncate_yn()))) {
-                        String tableName = s.getInsert_table();
-                        if (tableName != null && !truncatedTables.contains(tableName)) {
-                            log.info("[PREPARE] Truncating Table (from SQLs): {}", tableName);
-                            executeTruncate(targetConn, quoteIdentifier(tableName, schema.getTarget().getDb_type()));
-                            truncatedTables.add(tableName);
+                
+                // Check SQL List
+                java.util.List<InsertSql> sqlList = schema.getInsertSqlList();
+                if (sqlList != null && !sqlList.isEmpty()) {
+                    for (InsertSql s : sqlList) {
+                        if ("Y".equalsIgnoreCase(c.y.mig.util.StringUtil.nvl(s.getTruncate_yn()))) {
+                            String tableName = s.getInsert_table();
+                            if (tableName != null && !truncatedTables.contains(tableName)) {
+                                log.info("[PREPARE] Truncating Table (from SQLs): {}", tableName);
+                                executeTruncate(targetConn, quoteIdentifier(tableName, schema.getTarget().getDb_type()));
+                                truncatedTables.add(tableName);
+                            }
                         }
                     }
                 }
@@ -98,11 +109,13 @@ public abstract class AbstractMigrationStrategy implements MigrationStrategy {
     }
 
 
-    protected String buildTargetQuery(InsertSql iSql, java.util.List<InsertColumn> columns, String targetDbType) {
-        String tableName = quoteIdentifier(iSql.getInsert_table(), targetDbType);
+    protected String buildTargetQuery(MigrationList ml, java.util.List<InsertColumn> columns, String targetDbType) {
+        String tableName = quoteIdentifier(ml.getTarget_table(), targetDbType);
+        String insertType = ml.getInsert_type();
+        String pkCol = ml.getSource_pk(); // PK for update criteria
 
         String resultSql = null;
-        if ("INSERT".equalsIgnoreCase(iSql.getInsert_type())) {
+        if ("INSERT".equalsIgnoreCase(insertType)) {
             c.y.mig.db.query.Insert insert = new c.y.mig.db.query.Insert();
             insert.addFrom(tableName);
             for (InsertColumn col : columns) {
@@ -126,12 +139,12 @@ public abstract class AbstractMigrationStrategy implements MigrationStrategy {
                 }
             }
             resultSql = insert.toQuery();
-        } else if ("UPDATE".equalsIgnoreCase(iSql.getInsert_type())) {
+        } else if ("UPDATE".equalsIgnoreCase(insertType)) {
             c.y.mig.db.query.Update update = new c.y.mig.db.query.Update();
             update.addFrom(tableName);
             for (InsertColumn col : columns) {
                 String colName = quoteIdentifier(col.getColumn_name(), targetDbType);
-                if (col.getColumn_name().equalsIgnoreCase(iSql.getPk_column())) {
+                if (col.getColumn_name().equalsIgnoreCase(pkCol)) {
                     update.addWhere(colName + " = ", "?");
                 } else {
                     if ("SQL_FUNC".equals(col.getInsert_data())) {
@@ -160,6 +173,14 @@ public abstract class AbstractMigrationStrategy implements MigrationStrategy {
             log.info("[TARGET_QUERY] Standardized SQL for {}: {}", targetDbType, resultSql.replace("\n", " ").replaceAll("\\s+", " "));
         }
         return resultSql;
+    }
+
+    protected String buildTargetQuery(InsertSql iSql, java.util.List<InsertColumn> columns, String targetDbType) {
+        MigrationList ml = new MigrationList();
+        ml.setTarget_table(iSql.getInsert_table());
+        ml.setInsert_type(iSql.getInsert_type());
+        ml.setSource_pk(iSql.getPk_column());
+        return buildTargetQuery(ml, columns, targetDbType);
     }
 
     protected String quoteIdentifier(String id, String dbType) {
@@ -198,7 +219,7 @@ public abstract class AbstractMigrationStrategy implements MigrationStrategy {
         return "\"" + id + "\"";
     }
 
-    protected void setTargetParams(java.sql.PreparedStatement pstmt, InsertSql iSql, java.util.List<InsertColumn> columns, java.util.Map<String, Object> row) throws Exception {
+    protected void setTargetParams(java.sql.PreparedStatement pstmt, MigrationList ml, java.util.List<InsertColumn> columns, java.util.Map<String, Object> row) throws Exception {
         int pIdx = 1;
         for (InsertColumn col : columns) {
             Object val = null;
@@ -223,6 +244,10 @@ public abstract class AbstractMigrationStrategy implements MigrationStrategy {
             }
             pstmt.setObject(pIdx++, val);
         }
+    }
+
+    protected void setTargetParams(java.sql.PreparedStatement pstmt, InsertSql iSql, java.util.List<InsertColumn> columns, java.util.Map<String, Object> row) throws Exception {
+        setTargetParams(pstmt, (MigrationList) null, columns, row);
     }
 
     protected void executeTruncate(java.sql.Connection conn, String tableName) throws java.sql.SQLException {

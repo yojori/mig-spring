@@ -36,34 +36,39 @@ public class KeysetMigrationStrategy extends AbstractMigrationStrategy {
         log.info("Starting Migration [THREAD_IDX Strategy]");
 
         // 1. 유효성 검사 및 테이블 정보 획득
-        List<InsertTable> tables = schema.getInsertTableList();
         String tableName = null;
-        String pkCol = null;
+        String pkCol = workList.getSource_pk();
 
-        if (tables != null && !tables.isEmpty()) {
-            InsertTable sourceTableObj = tables.get(0);
-            tableName = sourceTableObj.getSource_table();
-            pkCol = sourceTableObj.getSource_pk();
-        } else {
-            String sqlSource = workList.getSql_string();
-            if (!StringUtil.empty(sqlSource)) {
-                String trimmed = sqlSource.trim();
-                if (trimmed.toUpperCase().startsWith("SELECT")) {
-                     java.util.regex.Pattern p = java.util.regex.Pattern.compile("(?i)^SELECT\\s+\\*\\s+FROM\\s+([a-zA-Z0-9_.]+)$");
-                     java.util.regex.Matcher m = p.matcher(trimmed);
-                     if (m.find()) {
-                         tableName = m.group(1);
-                     } else {
-                         tableName = "(" + trimmed + ") T_SOURCE";
-                     }
-                } else {
-                    tableName = trimmed;
-                }
-                
-                List<InsertSql> sqlList = schema.getInsertSqlList();
-                if (sqlList != null && !sqlList.isEmpty()) {
-                    pkCol = sqlList.get(0).getPk_column();
-                }
+        String sqlSource = workList.getSql_string();
+        if (!StringUtil.empty(sqlSource)) {
+            String trimmed = sqlSource.trim();
+            if (trimmed.toUpperCase().startsWith("SELECT")) {
+                 java.util.regex.Pattern p = java.util.regex.Pattern.compile("(?i)^SELECT\\s+\\*\\s+FROM\\s+([a-zA-Z0-9_.]+)$");
+                 java.util.regex.Matcher m = p.matcher(trimmed);
+                 if (m.find()) {
+                     tableName = m.group(1);
+                 } else {
+                     tableName = "(" + trimmed + ") T_SOURCE";
+                 }
+            } else {
+                tableName = trimmed;
+            }
+        }
+        
+        // Legacy fallbacks
+        if (StringUtil.empty(tableName)) {
+            List<InsertTable> tables = schema.getInsertTableList();
+            if (tables != null && !tables.isEmpty()) {
+                InsertTable sourceTableObj = tables.get(0);
+                tableName = sourceTableObj.getSource_table();
+                if (StringUtil.empty(pkCol)) pkCol = sourceTableObj.getSource_pk();
+            }
+        }
+
+        if (StringUtil.empty(pkCol)) {
+            List<InsertSql> sqlList = schema.getInsertSqlList();
+            if (sqlList != null && !sqlList.isEmpty()) {
+                pkCol = sqlList.get(0).getPk_column();
             }
         }
 
@@ -115,22 +120,26 @@ public class KeysetMigrationStrategy extends AbstractMigrationStrategy {
         
         final String finalTableName = tableName;
 
-        // 5. Pre-build Target SQL templates & Pre-filter Column lists (Reuse for all chunks)
-        List<InsertSql> sqlList = schema.getInsertSqlList();
+        // 5. Pre-build Target SQL templates (Reuse for all chunks)
         List<String> targetQueries = new ArrayList<>();
-        List<List<InsertColumn>> filteredColumnsList = new ArrayList<>();
+        List<InsertColumn> allColumns = schema.getInsertColumnList();
 
-        if (sqlList != null) {
-            List<InsertColumn> allColumns = schema.getInsertColumnList();
-            for (InsertSql sql : sqlList) {
-                List<InsertColumn> filtered = new ArrayList<>();
-                for (InsertColumn col : allColumns) {
-                    if (sql.getInsert_sql_seq().equals(col.getInsert_sql_seq())) {
-                        filtered.add(col);
+        String targetQuery = buildTargetQuery(workList, allColumns, schema.getTarget().getDb_type());
+        if (targetQuery != null) {
+            targetQueries.add(targetQuery);
+        } else {
+            // Legacy fallback
+            List<InsertSql> sqlList = schema.getInsertSqlList();
+            if (sqlList != null) {
+                for (InsertSql sql : sqlList) {
+                    List<InsertColumn> filtered = new ArrayList<>();
+                    for (InsertColumn col : allColumns) {
+                        if (sql.getMig_list_seq() != null && sql.getMig_list_seq().equals(col.getMig_list_seq())) {
+                            filtered.add(col);
+                        }
                     }
+                    targetQueries.add(buildTargetQuery(sql, filtered, schema.getTarget().getDb_type()));
                 }
-                filteredColumnsList.add(filtered);
-                targetQueries.add(buildTargetQuery(sql, filtered, schema.getTarget().getDb_type()));
             }
         }
 
@@ -142,7 +151,7 @@ public class KeysetMigrationStrategy extends AbstractMigrationStrategy {
                 final int chunkLimit = fetchSize;
                 executor.submit(() -> {
                     try {
-                        processChunk(chunkIndex, startKey, pkCols, finalTableName, schema, chunkLimit, totalProcessed, totalRead, targetQueries, filteredColumnsList);
+                        processChunk(chunkIndex, startKey, pkCols, finalTableName, schema, chunkLimit, totalProcessed, totalRead, targetQueries, allColumns, workList);
                     } catch (Exception e) {
                         log.error("Chunk " + chunkIndex + " failed", e);
                     }
@@ -284,7 +293,7 @@ public class KeysetMigrationStrategy extends AbstractMigrationStrategy {
         return keys;
     }
 
-    private void processChunk(int chunkIndex, Map<String, Object> startKey, String[] pkCols, String tableName, MigrationSchema schema, int limit, AtomicInteger totalProcessed, AtomicInteger totalRead, List<String> targetQueries, List<List<InsertColumn>> filteredColumnsList) {
+    private void processChunk(int chunkIndex, Map<String, Object> startKey, String[] pkCols, String tableName, MigrationSchema schema, int limit, AtomicInteger totalProcessed, AtomicInteger totalRead, List<String> targetQueries, List<InsertColumn> allColumns, MigrationList workList) {
         Connection sourceConn = null;
         Connection targetConn = null;
         PreparedStatement sourcePstmt = null;
@@ -316,7 +325,6 @@ public class KeysetMigrationStrategy extends AbstractMigrationStrategy {
             String query = applyLimit(select.toQuery(), limit, dbType);
             
             log.info("Chunk [{}] Query: {}", chunkIndex, query);
-            log.info("pk key {}", java.util.Arrays.toString(pkCols));
             
             sourcePstmt = sourceConn.prepareStatement(query);
             bindSeekParams(sourcePstmt, pkCols, startKey, 1, sourceDbType);
@@ -334,17 +342,31 @@ public class KeysetMigrationStrategy extends AbstractMigrationStrategy {
 
             long startFetchRowTime = System.currentTimeMillis();
             int rowCount = 0;
+            
+            // For mapping: workList or legacy sqlList
             List<InsertSql> sqlList = schema.getInsertSqlList();
+            boolean isOneToOne = (targetQueries.size() == 1 && !StringUtil.empty(workList.getTarget_table()));
+
             while (sourceRs.next()) {
                 Map<String, Object> row = new HashMap<>();
                 for (int i = 1; i <= colNames.length; i++) {
                     row.put(colNames[i-1], sourceRs.getObject(i));
                 }
 
-                for (int i = 0; i < targetQueries.size(); i++) {
-                    if (targetPstmts[i] == null) continue;
-                    setTargetParams(targetPstmts[i], sqlList.get(i), filteredColumnsList.get(i), row);
-                    targetPstmts[i].addBatch();
+                if (isOneToOne) {
+                    if (targetPstmts[0] != null) {
+                        setTargetParams(targetPstmts[0], workList, allColumns, row);
+                        targetPstmts[0].addBatch();
+                    }
+                } else {
+                    // Legacy loop (sqlList should exist if targetQueries.size() > 1 and isOneToOne is false)
+                    for (int i = 0; i < targetQueries.size(); i++) {
+                        if (targetPstmts[i] == null) continue;
+                        if (sqlList != null && i < sqlList.size()) {
+                             setTargetParams(targetPstmts[i], sqlList.get(i), allColumns, row); // AllColumns used for filtering inside setTargetParams
+                             targetPstmts[i].addBatch();
+                        }
+                    }
                 }
                 rowCount++;
             }

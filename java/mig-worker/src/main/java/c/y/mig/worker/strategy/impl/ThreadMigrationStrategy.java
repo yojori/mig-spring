@@ -16,7 +16,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import c.y.mig.db.query.Select;
 import c.y.mig.model.InsertSql;
 import c.y.mig.model.InsertTable;
 import c.y.mig.model.MigrationList;
@@ -102,25 +101,21 @@ public class ThreadMigrationStrategy extends AbstractMigrationStrategy {
             targetConn = dynamicDataSource.getConnection(schema.getTarget());
             targetConn.setAutoCommit(false);
             
-            List<InsertSql> sqlList = schema.getInsertSqlList();
-            targetPstmts = new PreparedStatement[sqlList.size()];
-            List<List<c.y.mig.model.InsertColumn>> filteredColumnsList = new java.util.ArrayList<>();
-            List<c.y.mig.model.InsertColumn> allColumns = schema.getInsertColumnList();
+            // Determine Target Info
+            String targetTable = workList.getTarget_table();
+            if (StringUtil.empty(targetTable)) {
+                List<InsertSql> sqlList = schema.getInsertSqlList();
+                if (sqlList != null && !sqlList.isEmpty()) {
+                    targetTable = sqlList.get(0).getInsert_table();
+                }
+            }
 
-            for (int i = 0; i < sqlList.size(); i++) {
-                InsertSql iSql = sqlList.get(i);
-                List<c.y.mig.model.InsertColumn> filtered = new java.util.ArrayList<>();
-                for (c.y.mig.model.InsertColumn col : allColumns) {
-                    if (iSql.getInsert_sql_seq().equals(col.getInsert_sql_seq())) {
-                        filtered.add(col);
-                    }
-                }
-                filteredColumnsList.add(filtered);
-                
-                String query = buildTargetQuery(iSql, filtered, schema.getTarget().getDb_type());
-                if (query != null) {
-                    targetPstmts[i] = targetConn.prepareStatement(query);
-                }
+            List<c.y.mig.model.InsertColumn> allColumns = schema.getInsertColumnList();
+            String query = buildTargetQuery(workList, allColumns, schema.getTarget().getDb_type());
+            
+            targetPstmts = new PreparedStatement[1];
+            if (query != null) {
+                targetPstmts[0] = targetConn.prepareStatement(query);
             }
 
             // 2. Open Source Connection (Reuse for the thread)
@@ -131,7 +126,24 @@ public class ThreadMigrationStrategy extends AbstractMigrationStrategy {
                 long stepStartTime = System.currentTimeMillis();
 
                 // Loop setup
-                String sqlSource = buildSourceQuery(schema, workList);
+                String sqlSource = workList.getSql_string();
+                String pkCol = workList.getSource_pk();
+                
+                // Fallback
+                if (StringUtil.empty(sqlSource)) {
+                    List<InsertTable> tables = schema.getInsertTableList();
+                    if (tables != null && !tables.isEmpty()) {
+                        sqlSource = "SELECT * FROM " + tables.get(0).getSource_table();
+                        if (StringUtil.empty(pkCol)) pkCol = tables.get(0).getSource_pk();
+                    }
+                }
+
+                if (!StringUtil.empty(pkCol)) {
+                    String upperSql = sqlSource.toUpperCase();
+                    if (!upperSql.contains("ORDER BY") && !upperSql.contains("GROUP BY")) {
+                        sqlSource += " ORDER BY " + pkCol;
+                    }
+                }
                 
                 Search form = new Search();
                 form.setCurrentPage(currentPage);
@@ -186,10 +198,9 @@ public class ThreadMigrationStrategy extends AbstractMigrationStrategy {
                     }
 
                     // Add to batch
-                    for (int i = 0; i < sqlList.size(); i++) {
-                        if (targetPstmts[i] == null) continue;
-                        setTargetParams(targetPstmts[i], sqlList.get(i), filteredColumnsList.get(i), row);
-                        targetPstmts[i].addBatch();
+                    if (targetPstmts[0] != null) {
+                        setTargetParams(targetPstmts[0], workList, allColumns, row);
+                        targetPstmts[0].addBatch();
                     }
                     rowCount++;
                 }
@@ -235,34 +246,6 @@ public class ThreadMigrationStrategy extends AbstractMigrationStrategy {
             }
             closeResources(sourceRs, sourcePstmt, sourceConn); // Ensure source is closed if error
             closeResources(null, null, targetConn);
-        }
-    }
-    
-    private String buildSourceQuery(MigrationSchema schema, MigrationList workList) {
-        List<InsertTable> tables = schema.getInsertTableList();
-        if (tables != null && !tables.isEmpty()) {
-            InsertTable insertT = tables.get(0);
-            Select select = new Select();
-            select.addField(" * ");
-            select.addFrom(insertT.getSource_table());
-            if (!StringUtil.empty(insertT.getSource_pk())) {
-                select.addOrder(insertT.getSource_pk()); // Important for consistent paging
-            }
-            return select.toQuery();
-        } else {
-             String sql = workList.getSql_string();
-             // Try to find PK from InsertSql for ordering (consistent paging)
-             List<InsertSql> sqlList = schema.getInsertSqlList();
-             if (sqlList != null && !sqlList.isEmpty()) {
-                 String pkCol = sqlList.get(0).getPk_column();
-                 if (!StringUtil.empty(pkCol)) {
-                     String upperSql = sql.toUpperCase();
-                     if (!upperSql.contains("ORDER BY") && !upperSql.contains("GROUP BY")) {
-                         sql += " ORDER BY " + pkCol;
-                     }
-                 }
-             }
-             return sql;
         }
     }
 }

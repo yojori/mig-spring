@@ -10,6 +10,11 @@
 
     if ("update".equals(master.getMode()) && master.getMaster_code() != null) {
         master = manager.find(master);
+        master.setMode("update");
+    } else {
+        master.setMode("insert");
+        master.setDisplay_yn("Y");
+        master.setOrdering(manager.findMax() + 10);
     }
 
     request.setAttribute("master", master);

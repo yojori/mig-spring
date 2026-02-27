@@ -5,7 +5,6 @@ public class InsertColumn extends Search {
     private String mig_list_seq;
 
     private String insert_column_seq;
-    private String insert_sql_seq;
     private String column_name;
     private String column_type;
 
@@ -34,14 +33,6 @@ public class InsertColumn extends Search {
 
     public void setInsert_column_seq(String insert_column_seq) {
         this.insert_column_seq = insert_column_seq;
-    }
-
-    public String getInsert_sql_seq() {
-        return insert_sql_seq;
-    }
-
-    public void setInsert_sql_seq(String insert_sql_seq) {
-        this.insert_sql_seq = insert_sql_seq;
     }
 
     public String getColumn_name() {

@@ -188,4 +188,32 @@ public class MigrationMasterManager extends Manager {
         }
         return rtn;
     }
+
+    public int findMax() {
+        int max = 0;
+        Connection con = null;
+        PreparedStatement stmt = null;
+        ResultSet rs = null;
+
+        try {
+            con = DBManager.getConnection();
+            Select sql = new Select();
+            sql.addField("MAX(ordering)");
+            sql.addFrom(MIGRATION_MASTER);
+
+            stmt = con.prepareStatement(sql.toQuery());
+            rs = stmt.executeQuery();
+
+            if (rs.next()) {
+                max = rs.getInt(1);
+            }
+        } catch (SQLException e) {
+            log.error(e.toString(), e);
+        } catch (Exception e) {
+            log.error(e.toString(), e);
+        } finally {
+            DBManager.close(rs, stmt, con);
+        }
+        return max;
+    }
 }

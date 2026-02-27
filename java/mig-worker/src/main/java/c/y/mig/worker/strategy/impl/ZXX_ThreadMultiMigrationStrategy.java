@@ -47,33 +47,38 @@ public class ZXX_ThreadMultiMigrationStrategy extends AbstractMigrationStrategy 
         }
 
         // 1. Validate Source Table & PK
-        List<InsertTable> tables = schema.getInsertTableList();
         String tableName = null;
-        String pkCol = null;
+        String pkCol = workList.getSource_pk();
 
-        if (tables != null && !tables.isEmpty()) {
-            InsertTable sourceTableObj = tables.get(0);
-            tableName = sourceTableObj.getSource_table();
-            pkCol = sourceTableObj.getSource_pk();
-        } else {
-            String sqlSource = workList.getSql_string();
-            if (!StringUtil.empty(sqlSource)) {
-                String trimmed = sqlSource.trim();
-                 if (trimmed.toUpperCase().startsWith("SELECT")) {
-                     java.util.regex.Pattern p = java.util.regex.Pattern.compile("(?i)^SELECT\\s+\\*\\s+FROM\\s+([a-zA-Z0-9_.]+)$");
-                     java.util.regex.Matcher m = p.matcher(trimmed);
-                     if (m.find()) {
-                         tableName = m.group(1);
-                     } else {
-                         tableName = "(" + trimmed + ") T_SOURCE";
-                     }
+        String sqlSource = workList.getSql_string();
+        if (!StringUtil.empty(sqlSource)) {
+            String trimmed = sqlSource.trim();
+             if (trimmed.toUpperCase().startsWith("SELECT")) {
+                 java.util.regex.Pattern p = java.util.regex.Pattern.compile("(?i)^SELECT\\s+\\*\\s+FROM\\s+([a-zA-Z0-9_.]+)$");
+                 java.util.regex.Matcher m = p.matcher(trimmed);
+                 if (m.find()) {
+                     tableName = m.group(1);
                  } else {
-                     tableName = trimmed;
+                     tableName = "(" + trimmed + ") T_SOURCE";
                  }
-                List<InsertSql> sqlList = schema.getInsertSqlList();
-                if (sqlList != null && !sqlList.isEmpty()) {
-                    pkCol = sqlList.get(0).getPk_column();
-                }
+             } else {
+                 tableName = trimmed;
+             }
+        }
+        
+        // Legacy fallbacks
+        if (StringUtil.empty(tableName)) {
+            List<InsertTable> tables = schema.getInsertTableList();
+            if (tables != null && !tables.isEmpty()) {
+                tableName = tables.get(0).getSource_table();
+                if (StringUtil.empty(pkCol)) pkCol = tables.get(0).getSource_pk();
+            }
+        }
+
+        if (StringUtil.empty(pkCol)) {
+            List<InsertSql> sqlList = schema.getInsertSqlList();
+            if (sqlList != null && !sqlList.isEmpty()) {
+                pkCol = sqlList.get(0).getPk_column();
             }
         }
 
@@ -162,6 +167,11 @@ public class ZXX_ThreadMultiMigrationStrategy extends AbstractMigrationStrategy 
             childTask.setSource_db_type(workList.getSource_db_type());
             childTask.setTarget_db_type(workList.getTarget_db_type());
             childTask.setSql_string(workList.getSql_string());
+            childTask.setSource_table(workList.getSource_table());
+            childTask.setTarget_table(workList.getTarget_table());
+            childTask.setSource_pk(workList.getSource_pk());
+            childTask.setTruncate_yn(workList.getTruncate_yn());
+            childTask.setInsert_type(workList.getInsert_type());
             childTask.setParam_string(paramStr); // Set Filtering Params
             childTask.setCreate_date(new Date());
             childTask.setUpdate_date(new Date());

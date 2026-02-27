@@ -7,6 +7,7 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import c.y.mig.util.StringUtil;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -46,11 +47,18 @@ public class JavaMigrationStrategy extends AbstractMigrationStrategy {
             log.info("[JAVA_STRATEGY] Found config in Param String: {} (PK: {})", sourceClassWithMethod, pkCol);
         }
 
-        if (sourceClassWithMethod == null && schema.getInsertSqlList() != null && !schema.getInsertSqlList().isEmpty()) {
-            InsertSql config = schema.getInsertSqlList().get(0);
-            sourceClassWithMethod = config.getInsert_table(); // "com.package.Class.method"
-            pkCol = config.getPk_column(); // "ID" or "ID1,ID2"
-            log.info("[JAVA_STRATEGY] Found config in InsertSql (Step 3): {} (PK: {})", sourceClassWithMethod, pkCol);
+        if (sourceClassWithMethod == null) {
+            String targetVal = workList.getTarget_table();
+            if (!StringUtil.empty(targetVal)) {
+                sourceClassWithMethod = targetVal;
+                pkCol = workList.getSource_pk();
+                log.info("[JAVA_STRATEGY] Found config in MigrationList: {} (PK: {})", sourceClassWithMethod, pkCol);
+            } else if (schema.getInsertSqlList() != null && !schema.getInsertSqlList().isEmpty()) {
+                InsertSql config = schema.getInsertSqlList().get(0);
+                sourceClassWithMethod = config.getInsert_table(); // "com.package.Class.method"
+                pkCol = config.getPk_column(); // "ID" or "ID1,ID2"
+                log.info("[JAVA_STRATEGY] Found config in InsertSql (Fallback): {} (PK: {})", sourceClassWithMethod, pkCol);
+            }
         }
 
         // 1. Dispatcher Logic (Parent Task)

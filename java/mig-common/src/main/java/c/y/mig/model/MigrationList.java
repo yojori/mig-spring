@@ -27,11 +27,11 @@ public class MigrationList extends Search {
 
     private String display_yn;
     
-    // Joined fields from ZXXMIG_INSERT_SQL
     private String source_table;
     private String source_pk;
     private String target_table;
     private String truncate_yn;
+    private String insert_type; // INSERT/UPDATE
     
     private String param_string; // Used for passing dynamic params (e.g. MIN/MAX PK)
 
@@ -91,6 +91,9 @@ public class MigrationList extends Search {
 
     public String getTruncate_yn() { return truncate_yn; }
     public void setTruncate_yn(String truncate_yn) { this.truncate_yn = truncate_yn; }
+
+    public String getInsert_type() { return insert_type; }
+    public void setInsert_type(String insert_type) { this.insert_type = insert_type; }
 
     public String getParam_string() { return param_string; }
     public void setParam_string(String param_string) { this.param_string = param_string; }

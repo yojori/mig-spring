@@ -179,41 +179,18 @@
                                     <span class="text-muted" style="font-size:0.75rem;">[${list.target_db_alias}] ${list.target_db_type}</span>
                                 </td>
                                 <td class="text-center">
-                                    <c:choose>
-                                        <c:when test="${list.mig_type eq 'TABLE' || list.mig_type eq 'DDL'}">
-                                            <div class="small text-muted">
-                                                <c:set var="showSeparator" value="false" />
-                                                <c:if test="${list.mig_type eq 'TABLE'}">
-                                                    Source: <span class="text-primary">${fn:split(fn:toUpperCase(list.sql_string), 'FROM ')[1].split(' ')[0]}</span>
-                                                    <c:set var="showSeparator" value="true" />
-                                                </c:if>
-                                                <c:if test="${not empty list.source_pk && list.mig_type ne 'DDL'}">
-                                                    <c:if test="${showSeparator}"> | </c:if>
-                                                    PK: <span class="text-danger">${list.source_pk}</span>
-                                                    <c:set var="showSeparator" value="true" />
-                                                </c:if>
-                                                <c:if test="${list.truncate_yn eq 'Y'}">
-                                                    <c:if test="${showSeparator}"> | </c:if>
-                                                    <c:choose>
-                                                        <c:when test="${list.mig_type eq 'DDL'}">
-                                                            <span class="badge bg-danger">DROP</span>
-                                                        </c:when>
-                                                        <c:otherwise>
-                                                            <span class="badge bg-warning text-dark">TRUNCATE</span>
-                                                        </c:otherwise>
-                                                    </c:choose>
-                                                </c:if>
-                                            </div>
-                                        </c:when>
-                                        <c:otherwise>
-                                            <div class="btn-group btn-group-sm">
+                                    <div class="small">
+                                        <div class="btn-group btn-group-sm">
+                                            <c:if test="${list.mig_type=='NORMAL' || list.mig_type=='THREAD' || list.mig_type=='THREAD_IDX' || list.mig_type=='THREAD_MULTI'}">
+                                                <a href="javascript:goPopupSelect('${list.mig_list_seq}');" class="btn btn-outline-primary btn-sm" title="Columns"><i class="bi bi-card-checklist"></i></a>
                                                 <a href="javascript:goPopupInsert('${list.mig_list_seq}');" class="btn btn-outline-secondary btn-sm" title="Insert SQL"><i class="bi bi-file-earmark-code"></i></a>
-                                                <c:if test="${list.mig_type ne 'JAVA'}">
-                                                    <a href="javascript:goPopupRelation('${list.mig_list_seq}');" class="btn btn-outline-secondary btn-sm" title="Mapping"><i class="bi bi-diagram-3"></i></a>
-                                                </c:if>
-                                            </div>
-                                        </c:otherwise>
-                                    </c:choose>
+                                                <a href="javascript:goPopupRelation('${list.mig_list_seq}');" class="btn btn-outline-secondary btn-sm" title="Mapping"><i class="bi bi-diagram-3"></i></a>
+                                            </c:if>
+                                            <c:if test="${list.mig_type=='TABLE'}">
+                                                <a href="javascript:goPopupTable('${list.mig_list_seq}');" class="btn btn-outline-info btn-sm" title="Table Detail"><i class="bi bi-table"></i></a>
+                                            </c:if>
+                                        </div>
+                                    </div>
                                 </td>
                                 <td class="text-center">
                                     <c:if test="${list.mig_type ne 'DDL'}">${list.thread_count}</c:if>

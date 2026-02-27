@@ -18,6 +18,7 @@ import c.y.mig.db.DBManager;
 import c.y.mig.manager.DBConnMasterManager;
 import c.y.mig.manager.InsertColumnManager;
 import c.y.mig.manager.InsertSqlManager;
+import c.y.mig.manager.MigrationListManager;
 import c.y.mig.manager.SelectColumnManager;
 import c.y.mig.model.DBConnMaster;
 import c.y.mig.model.InsertColumn;
@@ -145,59 +146,36 @@ public class MigrationMetadataService {
                 }
             }
 
-            // 6. Register Insert Sql & Columns
-            InsertSqlManager ism = new InsertSqlManager();
-            InsertColumnManager icm = new InsertColumnManager();
-            
-            InsertSql is = new InsertSql();
-            String baseID = Long.toString(System.currentTimeMillis(), 36);
-            String insertSqlSeq = "IS-" + baseID + "-01";
-            is.setInsert_sql_seq(insertSqlSeq);
-            is.setMig_list_seq(ml.getMig_list_seq());
-            is.setInsert_type("INSERT");
-            is.setInsert_table(targetTableName);
-            
-            // Populate PK and Truncate directly from ml (no more param_string)
+            // 6. Update Migration List with PK and Truncate info
             String pk = ml.getSource_pk();
             if (StringUtil.empty(pk) && sourceConn != null && ("TABLE".equals(ml.getMig_type()) || "DDL".equals(ml.getMig_type()))) {
                 pk = fetchPrimaryKey(sourceConn, sourceBaseQuery, sourceDbType);
             }
             String trunc = ml.getTruncate_yn() != null ? ml.getTruncate_yn() : "N";
             
-            log.info("Mapping InsertSql: PK={}, Truncate={}", pk, trunc);
+            log.info("Updating MigrationList: PK={}, Truncate={}", pk, trunc);
             
-            is.setPk_column(pk);
-            is.setTruncate_yn(trunc);
+            ml.setSource_pk(pk);
+            ml.setTruncate_yn(trunc);
+            ml.setTarget_table(targetTableName);
+            ml.setInsert_type("INSERT");
+            ml.setSource_table(sourceBaseQuery);
+            ml.setUpdate_date(new Date());
             
-            is.setOrdering(10);
-            is.setCreate_date(new Date());
-            is.setUpdate_date(new Date());
-            ism.insert(is);
+            MigrationListManager mlm = new MigrationListManager();
+            mlm.update(ml);
 
-            // 7. Register Insert Table for TABLE/DDL types
-            if ("TABLE".equals(ml.getMig_type()) || "DDL".equals(ml.getMig_type())) {
-                InsertTableManager itm = new InsertTableManager();
-                InsertTable it = new InsertTable();
-                it.setMig_list_seq(ml.getMig_list_seq());
-                it.setSource_table(ml.getSql_string()); // For TABLE/DDL, sql_string is the source table
-                it.setTarget_table(targetTableName);
-                it.setSource_pk(pk);
-                it.setTruncate_yn(trunc);
-                it.setCreate_date(new Date());
-                it.setUpdate_date(new Date());
-                itm.insert(it);
-                log.info("Registered InsertTable for Task: {}", ml.getMig_list_seq());
-            }
-
-            // Register columns only if source metadata was successful
+            // 7. Register Insert Column metadata
             if (sourceMeta != null) {
+                InsertColumnManager icm = new InsertColumnManager();
                 String baseID_SC = Long.toString(System.currentTimeMillis(), 36);
                 for (int i = 1; i <= sourceColCount; i++) {
                     String colName = sourceMeta.getColumnLabel(i).toUpperCase();
                     
                     InsertColumn ic = new InsertColumn();
                     ic.setInsert_column_seq("IC-" + baseID_SC + "-" + String.format("%03d", i));
-                    ic.setInsert_sql_seq(insertSqlSeq);
+                    ic.setMig_list_seq(ml.getMig_list_seq());
+                    ic.setMig_list_seq(ml.getMig_list_seq());
                     ic.setColumn_name(colName);
                     ic.setColumn_type(sourceMeta.getColumnTypeName(i));
                     

@@ -165,14 +165,14 @@ public class InsertSqlManager extends Manager {
             ResultSetMetaData meta = rs.getMetaData();
             
             InsertColumnManager colManager = new InsertColumnManager();
-            colManager.deleteByInsertSqlSeq(search.getInsert_sql_seq());
+            colManager.deleteByMigListSeq(search.getMig_list_seq());
             
             String baseID = Long.toString(System.currentTimeMillis(), 36);
             for(int i = 1; i <= meta.getColumnCount(); i++) {
                 InsertColumn col = new InsertColumn();
                 
                 col.setInsert_column_seq("IC-" + baseID + "-" + String.format("%03d", i));
-                col.setInsert_sql_seq(search.getInsert_sql_seq());
+                col.setMig_list_seq(search.getMig_list_seq());
                 
                 col.setColumn_name(meta.getColumnName(i).toUpperCase());
                 col.setColumn_type(meta.getColumnTypeName(i));

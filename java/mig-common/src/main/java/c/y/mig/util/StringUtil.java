@@ -27,7 +27,7 @@ public class StringUtil {
         if (obj == null)
             return "";
         else
-            return (String) obj;
+            return String.valueOf(obj);
     }
 
     public static String nvl(String strOrg, String strDef) {
@@ -44,7 +44,7 @@ public class StringUtil {
         String strValue = nvl(strOrg);
 
         if (!"".equals(strValue)) {
-            return Integer.parseInt(strValue);
+            try { return Integer.parseInt(strValue); } catch(Exception e) { return nDef; }
         } else {
             return nDef;
         }
@@ -54,7 +54,7 @@ public class StringUtil {
         String strValue = nvl(strOrg);
 
         if (!"".equals(strValue)) {
-            return Long.parseLong(strValue);
+             try { return Long.parseLong(strValue); } catch(Exception e) { return nDef; }
         } else {
             return nDef;
         }
@@ -64,7 +64,7 @@ public class StringUtil {
         String strValue = nvl(strOrg);
 
         if (!"".equals(strValue)) {
-            return Float.parseFloat(strValue);
+             try { return Float.parseFloat(strValue); } catch(Exception e) { return nDef; }
         } else {
             return nDef;
         }
@@ -74,7 +74,7 @@ public class StringUtil {
         String strValue = nvl(strOrg);
 
         if (!"".equals(strValue)) {
-            return Double.parseDouble(strValue);
+             try { return Double.parseDouble(strValue); } catch(Exception e) { return nDef; }
         } else {
             return nDef;
         }

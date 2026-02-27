@@ -9,9 +9,50 @@ import c.y.mig.db.query.Dummy;
 import c.y.mig.db.query.Insert;
 import c.y.mig.db.query.Select;
 import c.y.mig.db.query.Update;
+import java.util.HashMap;
+import java.util.Map;
 import c.y.mig.model.Search;
 
 public abstract class Manager implements InterfaceManager {
+    
+    protected String getRownum1Sql(String sql_string, String dbType) {
+        String rtn = sql_string;
+        if (dbType == null) dbType = "mysql";
+        
+        if ("mysql".equals(dbType)) {
+            rtn = sql_string + " Limit 0, 1";
+        } else if ("maria".equals(dbType)) {
+            rtn = sql_string + " Limit 1 OFFSET 0";
+        } else if ("mssql".equals(dbType)) {
+            String temp = sql_string.toUpperCase();
+            int idx = temp.lastIndexOf("ORDER BY");
+            if (idx > 0) {
+                rtn = "SELECT TOP 1 A.* FROM ( " + sql_string.substring(0, idx) + " ) A";
+            } else {
+                rtn = "SELECT TOP 1 A.* FROM ( " + sql_string + " ) A";
+            }
+        } else if ("oracle".equals(dbType)) {
+            rtn = "SELECT * FROM ( " + sql_string + " ) WHERE  ROWNUM = 1";
+        } else if ("postgresql".equals(dbType)) {
+            rtn = sql_string + " Limit 1 OFFSET 0";
+        }
+        return rtn;
+    }
+
+    protected Map<String, String> getTypeMap(String dbType) {
+        Map<String, String> typeMap = new HashMap<>();
+        typeMap.put("12_oracle", "VARCHAR2"); typeMap.put("12_mysql", "VARCHAR"); typeMap.put("12_maria", "VARCHAR"); typeMap.put("12_mssql", "VARCHAR");
+        typeMap.put("4_oracle", "NUMBER"); typeMap.put("4_mysql", "INT"); typeMap.put("4_maria", "INT"); typeMap.put("4_mssql", "INT");
+        typeMap.put("-5_oracle", "NUMBER"); typeMap.put("-5_mysql", "BIGINT"); typeMap.put("-5_maria", "BIGINT"); typeMap.put("-5_mssql", "BIGINT");
+        typeMap.put("93_oracle", "TIMESTAMP"); typeMap.put("93_mysql", "TIMESTAMP"); typeMap.put("93_maria", "TIMESTAMP"); typeMap.put("93_mssql", "DATETIME");
+        typeMap.put("91_oracle", "DATE"); typeMap.put("91_mysql", "DATE"); typeMap.put("91_maria", "DATE"); typeMap.put("91_mssql", "DATE");
+        typeMap.put("12_postgresql", "VARCHAR");
+        typeMap.put("4_postgresql", "INTEGER");
+        typeMap.put("-5_postgresql", "BIGINT");
+        typeMap.put("93_postgresql", "TIMESTAMP");
+        typeMap.put("91_postgresql", "DATE");
+        return typeMap;
+    }
 
     public final String DB_MASTER = "ZXXMIG_DB_MASTER";
     public final String INSERT_COLUMN = "ZXXMIG_INSERT_COLUMN";
