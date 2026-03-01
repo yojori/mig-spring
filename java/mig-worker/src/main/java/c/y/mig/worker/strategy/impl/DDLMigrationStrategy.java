@@ -1,15 +1,21 @@
 package c.y.mig.worker.strategy.impl;
 
-import java.sql.*;
-import java.util.*;
+import java.sql.Connection;
+import java.sql.DatabaseMetaData;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.sql.Types;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.springframework.stereotype.Component;
 
 import c.y.mig.model.MigrationList;
 import c.y.mig.model.MigrationSchema;
+import c.y.mig.util.StringUtil;
 import c.y.mig.worker.strategy.AbstractMigrationStrategy;
 import c.y.mig.worker.strategy.ProgressListener;
-import c.y.mig.util.StringUtil;
 
 /**
  * Strategy for automated table creation (DDL) from Source to Target.
@@ -273,6 +279,13 @@ public class DDLMigrationStrategy extends AbstractMigrationStrategy {
                     
                     String mapped = m.getTgt_type_name();
                     if (mapped.contains("(") || mapped.contains(" ")) return mapped;
+
+                    // Handle types that only take a single precision parameter (fsp) like DATETIME(6), TIMESTAMP(6), TIME(6)
+                    String upperMapped = mapped.toUpperCase();
+                    if (upperMapped.startsWith("DATETIME") || upperMapped.startsWith("TIMESTAMP") || upperMapped.startsWith("TIME")) {
+                        if (scale > 0 && scale <= 7) return mapped + "(" + scale + ")";
+                        return mapped;
+                    }
 
                     if (size > 0) {
                         if (scale > 0) return mapped + "(" + size + "," + scale + ")";

@@ -19,8 +19,7 @@
 
         if (insert_sql_seq != null) {
             for (int i = 0; i < insert_sql_seq.length; i++) {
-                // System.out.println(" DEBUG: Row " + i + " Seq=" + insert_sql_seq[i] + " trunc=" + (truncate_yn != null && i < truncate_yn.length ? truncate_yn[i] : " null"));
-
+                // ... (existing loop content) ...
                 InsertSql entity = new InsertSql();
                 entity.setMig_list_seq(search.getMig_list_seq());
                 entity.setInsert_type(insert_type[i]);
@@ -45,6 +44,25 @@
                     entity.setInsert_sql_seq(insert_sql_seq[i]);
                     entity.setUpdate_date(new Date());
                     manager.update(entity);
+                }
+            }
+
+            // Sync with first valid entry in MigrationList
+            for (int i = 0; i < insert_table.length; i++) {
+                if (insert_table[i] != null && insert_table[i].length() > 0) {
+                    MigrationListManager migManager = new MigrationListManager();
+                    MigrationList migList = new MigrationList();
+                    migList.setMig_list_seq(search.getMig_list_seq());
+                    migList = migManager.find(migList);
+                    if (migList != null) {
+                        migList.setTarget_table(insert_table[i]);
+                        migList.setSource_pk(pk_column[i]);
+                        migList.setInsert_type(insert_type[i]);
+                        migList.setTruncate_yn( (truncate_yn != null && i < truncate_yn.length && "Y".equals(truncate_yn[i])) ? "Y" : "N" );
+                        migList.setUpdate_date(new Date());
+                        migManager.update(migList);
+                    }
+                    break;
                 }
             }
         }
