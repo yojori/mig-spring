@@ -110,13 +110,7 @@ public class KeysetMigrationStrategy extends AbstractMigrationStrategy {
         ExecutorService executor = Executors.newFixedThreadPool(threadCount);
         AtomicInteger totalProcessed = new AtomicInteger(0);
         AtomicInteger totalRead = new AtomicInteger(0);
-        java.util.Timer progressTimer = new java.util.Timer(true);
-        progressTimer.scheduleAtFixedRate(new java.util.TimerTask() {
-            @Override
-            public void run() {
-                if (listener != null) listener.onProgress(totalRead.get(), totalProcessed.get());
-            }
-        }, 1000, 3000);
+        // progressTimer removed to reduce database load
         
         final String finalTableName = tableName;
 
@@ -167,7 +161,7 @@ public class KeysetMigrationStrategy extends AbstractMigrationStrategy {
             executor.shutdownNow();
             throw e;
         } finally {
-            if (progressTimer != null) progressTimer.cancel();
+            // progressTimer cleanup removed
         }
 
         log.info("Total Processed Rows: {}", totalProcessed.get());
@@ -192,6 +186,7 @@ public class KeysetMigrationStrategy extends AbstractMigrationStrategy {
         Connection conn = null;
         PreparedStatement pstmt = null;
         ResultSet rs = null;
+        String dbType = sourceDs.getDb_type();
         
         try {
             conn = dynamicDataSource.getConnection(sourceDs);
@@ -219,9 +214,8 @@ public class KeysetMigrationStrategy extends AbstractMigrationStrategy {
             sql.append(" WHERE 1=1 "); 
             
             if (minPks != null && minPks.length == pkCols.length) {
-                if (pkCols.length == 1) {
-                    sql.append(" AND ").append(quoteIdentifier(pkCols[0], sourceDs.getDb_type())).append(" >= ?");
-                } else {
+                boolean isMssqlSource = (dbType != null && (dbType.toLowerCase().contains("mssql") || dbType.toLowerCase().contains("sqlserver")));
+                if (!isMssqlSource && pkCols.length > 1) {
                     // Tuple Comparison: (A, B) >= (?, ?)
                     sql.append(" AND (").append(pkList).append(") >= (");
                     for(int i=0; i<pkCols.length; i++) {
@@ -229,13 +223,33 @@ public class KeysetMigrationStrategy extends AbstractMigrationStrategy {
                          if (i < pkCols.length - 1) sql.append(", ");
                     }
                     sql.append(")");
+                } else {
+                    // Expanded logic for MSSQL or Single PK
+                    if (pkCols.length == 1) {
+                        sql.append(" AND ").append(quoteIdentifier(pkCols[0], sourceDs.getDb_type())).append(" >= ?");
+                    } else {
+                        sql.append(" AND (");
+                        for (int i = 0; i < pkCols.length; i++) {
+                            if (i > 0) sql.append(" OR ");
+                            sql.append("(");
+                            for (int j = 0; j < i; j++) {
+                                sql.append(quoteIdentifier(pkCols[j], sourceDs.getDb_type())).append(" = ? AND ");
+                            }
+                            if (i == pkCols.length - 1) {
+                                sql.append(quoteIdentifier(pkCols[i], sourceDs.getDb_type())).append(" >= ?");
+                            } else {
+                                sql.append(quoteIdentifier(pkCols[i], sourceDs.getDb_type())).append(" > ?");
+                            }
+                            sql.append(")");
+                        }
+                        sql.append(")");
+                    }
                 }
             }
             
             if (maxPks != null && maxPks.length == pkCols.length) {
-                 if (pkCols.length == 1) {
-                    sql.append(" AND ").append(quoteIdentifier(pkCols[0], sourceDs.getDb_type())).append(" <= ?");
-                } else {
+                boolean isMssqlSource = (dbType != null && (dbType.toLowerCase().contains("mssql") || dbType.toLowerCase().contains("sqlserver")));
+                if (!isMssqlSource && pkCols.length > 1) {
                     // Tuple Comparison: (A, B) <= (?, ?)
                     sql.append(" AND (").append(pkList).append(") <= (");
                     for(int i=0; i<pkCols.length; i++) {
@@ -243,13 +257,34 @@ public class KeysetMigrationStrategy extends AbstractMigrationStrategy {
                          if (i < pkCols.length - 1) sql.append(", ");
                     }
                     sql.append(")");
+                } else {
+                    // Expanded logic for MSSQL or Single PK
+                    if (pkCols.length == 1) {
+                        sql.append(" AND ").append(quoteIdentifier(pkCols[0], sourceDs.getDb_type())).append(" <= ?");
+                    } else {
+                        sql.append(" AND (");
+                        for (int i = 0; i < pkCols.length; i++) {
+                            if (i > 0) sql.append(" OR ");
+                            sql.append("(");
+                            for (int j = 0; j < i; j++) {
+                                sql.append(quoteIdentifier(pkCols[j], sourceDs.getDb_type())).append(" = ? AND ");
+                            }
+                            if (i == pkCols.length - 1) {
+                                sql.append(quoteIdentifier(pkCols[i], sourceDs.getDb_type())).append(" <= ?");
+                            } else {
+                                sql.append(quoteIdentifier(pkCols[i], sourceDs.getDb_type())).append(" < ?");
+                            }
+                            sql.append(")");
+                        }
+                        sql.append(")");
+                    }
                 }
             }
             
             sql.append(" ) ");
             sql.append(" SELECT ").append(pkList).append(" FROM numbered_rows ");
             
-            String dbType = sourceDs.getDb_type();
+            dbType = sourceDs.getDb_type();
             if (dbType != null && (dbType.toLowerCase().contains("mssql") || dbType.toLowerCase().contains("sqlserver"))) {
                 sql.append(" WHERE rn = 1 OR (rn - 1) % ? = 0 "); 
             } else {

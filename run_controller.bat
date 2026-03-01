@@ -2,7 +2,7 @@
 chcp 65001 > nul
 echo Building Migration Common...
 cd java\mig-common
-call mvn install
+call mvn clean install
 if %errorlevel% neq 0 (
     echo.
     echo MIGRATION-COMMON BUILD FAILED.
@@ -12,7 +12,7 @@ if %errorlevel% neq 0 (
 
 cd ..\mig-controller
 echo Starting Migration Controller...
-call mvn spring-boot:run -Dfile.encoding=UTF-8
+call mvn clean spring-boot:run -Dfile.encoding=UTF-8
 if %errorlevel% neq 0 (
     echo.
     echo MIGRATION-CONTROLLER FAILED.

@@ -146,7 +146,7 @@ public class NormalMigrationStrategy extends AbstractMigrationStrategy {
                     log.info("Processed {} rows... (Current Batch - ReadTime: {}ms, WriteTime: {}ms, Total: {}ms)", 
                             totalInserted, readTimeTotal, writeDuration, elapsed);
                     
-                    if (listener != null) listener.onProgress(totalRead, totalInserted);
+                    // listener.onProgress removed within batch loop to reduce load
                     
                     // Reset batch specific read timer if you want, or keep cumulative
                     readTimeTotal = 0; 

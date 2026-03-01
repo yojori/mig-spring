@@ -103,13 +103,7 @@ public class ZXX_RownumMigrationStrategy extends AbstractMigrationStrategy {
         ExecutorService executor = Executors.newFixedThreadPool(threadCount);
         AtomicInteger totalProcessed = new AtomicInteger(0);
         AtomicInteger totalRead = new AtomicInteger(0);
-        java.util.Timer progressTimer = new java.util.Timer(true);
-        progressTimer.scheduleAtFixedRate(new java.util.TimerTask() {
-            @Override
-            public void run() {
-                if (listener != null) listener.onProgress(totalRead.get(), totalProcessed.get());
-            }
-        }, 1000, 3000);
+        // progressTimer removed to reduce database load
         
         try {
             for (int i = 0; i < chunkKeys.size(); i++) {
@@ -138,7 +132,7 @@ public class ZXX_RownumMigrationStrategy extends AbstractMigrationStrategy {
             executor.shutdownNow();
             throw e;
         } finally {
-            if (progressTimer != null) progressTimer.cancel();
+            // progressTimer cleanup removed
         }
 
         log.info("Total Processed Rows: {}", totalProcessed.get());

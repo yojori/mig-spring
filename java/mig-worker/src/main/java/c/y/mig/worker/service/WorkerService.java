@@ -12,10 +12,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Service;
 
-import c.y.mig.worker.client.WorkerClient;
+import c.y.mig.model.DBConnMaster;
 import c.y.mig.model.MigrationSchema;
 import c.y.mig.model.WorkerStatus;
-import c.y.mig.model.DBConnMaster;
+import c.y.mig.worker.client.WorkerClient;
 
 @Service
 public class WorkerService implements CommandLineRunner, InitializingBean {
@@ -109,9 +109,8 @@ public class WorkerService implements CommandLineRunner, InitializingBean {
                 }
             });
 
-            // Update Status: COMPLETED
+            // Update Status: COMPLETED with final counts
             status.setStatus("COMPLETED");
-            // status.setProcessedCount(100L); // Processed count already updated by listener
             workerClient.updateStatus(status);
 
         } catch (Exception e) {

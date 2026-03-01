@@ -142,29 +142,40 @@ public abstract class AbstractMigrationStrategy implements MigrationStrategy {
         } else if ("UPDATE".equalsIgnoreCase(insertType)) {
             c.y.mig.db.query.Update update = new c.y.mig.db.query.Update();
             update.addFrom(tableName);
+            
+            String[] pkList = pkCol != null ? pkCol.split(",") : new String[0];
+            java.util.Set<String> pkSet = new java.util.HashSet<>();
+            for(String p : pkList) pkSet.add(p.trim().toUpperCase());
+
+            // SET clause (Non-PK columns)
             for (InsertColumn col : columns) {
+                String colUpper = col.getColumn_name().toUpperCase();
+                if (pkSet.contains(colUpper)) continue;
+
                 String colName = quoteIdentifier(col.getColumn_name(), targetDbType);
-                if (col.getColumn_name().equalsIgnoreCase(pkCol)) {
-                    update.addWhere(colName + " = ", "?");
-                } else {
-                    if ("SQL_FUNC".equals(col.getInsert_data())) {
-                         String funcStr = col.getInsert_value();
-                         if (funcStr == null) funcStr = "";
-                         java.util.regex.Pattern p = java.util.regex.Pattern.compile("\\{([^}]+)\\}");
-                         java.util.regex.Matcher m = p.matcher(funcStr);
-                         java.util.List<String> bindCols = new java.util.ArrayList<>();
-                         StringBuffer sb = new StringBuffer();
-                         while (m.find()) {
-                             bindCols.add(m.group(1));
-                             m.appendReplacement(sb, "?");
-                         }
-                         m.appendTail(sb);
-                         col.setSqlFuncBindCols(bindCols);
-                         update.addField(colName, sb.toString());
-                    } else {
-                        update.addField(colName, "?");
+                if ("SQL_FUNC".equals(col.getInsert_data())) {
+                    String funcStr = col.getInsert_value();
+                    if (funcStr == null) funcStr = "";
+                    java.util.regex.Pattern p = java.util.regex.Pattern.compile("\\{([^}]+)\\}");
+                    java.util.regex.Matcher m = p.matcher(funcStr);
+                    java.util.List<String> bindCols = new java.util.ArrayList<>();
+                    StringBuffer sb = new StringBuffer();
+                    while (m.find()) {
+                        bindCols.add(m.group(1));
+                        m.appendReplacement(sb, "?");
                     }
+                    m.appendTail(sb);
+                    col.setSqlFuncBindCols(bindCols);
+                    update.addField(colName, sb.toString());
+                } else {
+                    update.addField(colName, "?");
                 }
+            }
+
+            // WHERE clause (PK columns)
+            for (String pCol : pkList) {
+                String colName = quoteIdentifier(pCol.trim(), targetDbType);
+                update.addWhere(colName + " = ?", "?");
             }
             resultSql = update.toQuery();
         }
@@ -221,29 +232,54 @@ public abstract class AbstractMigrationStrategy implements MigrationStrategy {
 
     protected void setTargetParams(java.sql.PreparedStatement pstmt, MigrationList ml, java.util.List<InsertColumn> columns, java.util.Map<String, Object> row) throws Exception {
         int pIdx = 1;
-        for (InsertColumn col : columns) {
-            Object val = null;
-            if ("SQL_FUNC".equals(col.getInsert_data())) {
-                if (col.getSqlFuncBindCols() != null) {
-                    for (String bindCol : col.getSqlFuncBindCols()) {
-                        Object bindVal = row.get(bindCol); 
-                        pstmt.setObject(pIdx++, bindVal);
-                    }
-                }
-                continue; // Skip standard binding
-            } else if ("CURRENT_DATE".equals(col.getInsert_data())) {
-                val = new java.sql.Date(System.currentTimeMillis());
-            } else if ("UUID".equals(col.getInsert_data())) {
-                val = c.y.mig.util.Config.getUUID();
-            } else if ("KEY_IN_VAR".equals(col.getInsert_data())) {
-                val = col.getInsert_value();
-            } else if ("KEY_IN_NUM".equals(col.getInsert_data())) {
-                val = Integer.parseInt(col.getInsert_value());
-            } else {
-                val = row.get(col.getInsert_data()); 
+        String insertType = ml != null ? ml.getInsert_type() : "INSERT";
+        String pkCol = ml != null ? ml.getSource_pk() : null;
+
+        if ("UPDATE".equalsIgnoreCase(insertType)) {
+            String[] pkList = pkCol != null ? pkCol.split(",") : new String[0];
+            java.util.Set<String> pkSet = new java.util.HashSet<>();
+            for(String p : pkList) pkSet.add(p.trim().toUpperCase());
+
+            // 1. Bind SET parameters (Non-PK)
+            for (InsertColumn col : columns) {
+                if (pkSet.contains(col.getColumn_name().toUpperCase())) continue;
+                pIdx = bindColumnValue(pstmt, col, row, pIdx);
             }
-            pstmt.setObject(pIdx++, val);
+            // 2. Bind WHERE parameters (PK)
+            for (String pCol : pkList) {
+                pstmt.setObject(pIdx++, row.get(pCol.trim().toUpperCase()));
+            }
+        } else {
+            // INSERT (Original logic)
+            for (InsertColumn col : columns) {
+                pIdx = bindColumnValue(pstmt, col, row, pIdx);
+            }
         }
+    }
+
+    private int bindColumnValue(java.sql.PreparedStatement pstmt, InsertColumn col, java.util.Map<String, Object> row, int pIdx) throws Exception {
+        Object val = null;
+        if ("SQL_FUNC".equals(col.getInsert_data())) {
+            if (col.getSqlFuncBindCols() != null) {
+                for (String bindCol : col.getSqlFuncBindCols()) {
+                    Object bindVal = row.get(bindCol.toUpperCase()); 
+                    pstmt.setObject(pIdx++, bindVal);
+                }
+            }
+            return pIdx;
+        } else if ("CURRENT_DATE".equals(col.getInsert_data())) {
+            val = new java.sql.Date(System.currentTimeMillis());
+        } else if ("UUID".equals(col.getInsert_data())) {
+            val = c.y.mig.util.Config.getUUID();
+        } else if ("KEY_IN_VAR".equals(col.getInsert_data())) {
+            val = col.getInsert_value();
+        } else if ("KEY_IN_NUM".equals(col.getInsert_data())) {
+            val = Integer.parseInt(col.getInsert_value());
+        } else {
+            val = row.get(col.getInsert_data().toUpperCase()); 
+        }
+        pstmt.setObject(pIdx++, val);
+        return pIdx;
     }
 
     protected void setTargetParams(java.sql.PreparedStatement pstmt, InsertSql iSql, java.util.List<InsertColumn> columns, java.util.Map<String, Object> row) throws Exception {
@@ -278,7 +314,7 @@ public abstract class AbstractMigrationStrategy implements MigrationStrategy {
              StringBuilder sb = new StringBuilder();
              sb.append(" (");
              for (int i = 0; i < pkCols.length; i++) {
-                 sb.append(pkCols[i]);
+                 sb.append(quoteIdentifier(pkCols[i], dbType));
                  if (i < pkCols.length - 1) sb.append(", ");
              }
              sb.append(") >= (");
@@ -293,19 +329,19 @@ public abstract class AbstractMigrationStrategy implements MigrationStrategy {
             // (A > ?) OR (A = ? AND B >= ?)
             StringBuilder sb = new StringBuilder();
             if (pkCols.length == 1) {
-                sb.append(pkCols[0]).append(" >= ?");
+                sb.append(quoteIdentifier(pkCols[0], dbType)).append(" >= ?");
             } else {
                 sb.append("(");
                 for (int i = 0; i < pkCols.length; i++) {
                     if (i > 0) sb.append(" OR ");
                     sb.append("(");
                     for (int j = 0; j < i; j++) {
-                        sb.append(pkCols[j]).append(" = ? AND ");
+                        sb.append(quoteIdentifier(pkCols[j], dbType)).append(" = ? AND ");
                     }
                     if (i == pkCols.length - 1) {
-                        sb.append(pkCols[i]).append(" >= ?");
+                        sb.append(quoteIdentifier(pkCols[i], dbType)).append(" >= ?");
                     } else {
-                        sb.append(pkCols[i]).append(" > ?");
+                        sb.append(quoteIdentifier(pkCols[i], dbType)).append(" > ?");
                     }
                     sb.append(")");
                 }
