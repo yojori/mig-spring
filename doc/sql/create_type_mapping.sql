@@ -103,3 +103,20 @@ INSERT INTO `zxxmig_type_mapping` (mapping_seq, src_db_type, src_type_name, tgt_
 ('TM-903', 'maria', 'DECIMAL', 'oracle', 'NUMBER', 10, 'Y', NOW(), NOW()),
 ('TM-904', 'maria', 'DATETIME', 'oracle', 'DATE', 10, 'Y', NOW(), NOW()),
 ('TM-905', 'maria', 'LONGBLOB', 'oracle', 'BLOB', 10, 'Y', NOW(), NOW());
+
+-- PostgreSQL -> MSSQL 매핑
+INSERT INTO `zxxmig_type_mapping` (mapping_seq, src_db_type, src_type_name, tgt_db_type, tgt_type_name, priority, use_yn, create_date, update_date) VALUES
+('TM-1001', 'postgresql', 'VARCHAR', 'mssql', 'VARCHAR', 10, 'Y', NOW(), NOW()),
+('TM-1002', 'postgresql', 'TEXT', 'mssql', 'VARCHAR(MAX)', 10, 'Y', NOW(), NOW()),
+('TM-1003', 'postgresql', 'NUMERIC', 'mssql', 'DECIMAL', 10, 'Y', NOW(), NOW()),
+('TM-1004', 'postgresql', 'TIMESTAMP', 'mssql', 'DATETIME2', 10, 'Y', NOW(), NOW()),
+('TM-1005', 'postgresql', 'BYTEA', 'mssql', 'VARBINARY(MAX)', 10, 'Y', NOW(), NOW()),
+('TM-1006', 'postgresql', 'UUID', 'mssql', 'UNIQUEIDENTIFIER', 10, 'Y', NOW(), NOW());
+
+-- MariaDB -> MSSQL 매핑
+INSERT INTO `zxxmig_type_mapping` (mapping_seq, src_db_type, src_type_name, tgt_db_type, tgt_type_name, priority, use_yn, create_date, update_date) VALUES
+('TM-1101', 'maria', 'VARCHAR', 'mssql', 'VARCHAR', 10, 'Y', NOW(), NOW()),
+('TM-1102', 'maria', 'LONGTEXT', 'mssql', 'VARCHAR(MAX)', 10, 'Y', NOW(), NOW()),
+('TM-1103', 'maria', 'DECIMAL', 'mssql', 'DECIMAL', 10, 'Y', NOW(), NOW()),
+('TM-1104', 'maria', 'DATETIME', 'mssql', 'DATETIME2', 10, 'Y', NOW(), NOW()),
+('TM-1105', 'maria', 'LONGBLOB', 'mssql', 'VARBINARY(MAX)', 10, 'Y', NOW(), NOW());
