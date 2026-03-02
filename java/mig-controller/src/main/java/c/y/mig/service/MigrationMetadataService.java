@@ -8,8 +8,6 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
-import c.y.mig.model.InsertTable;
-import c.y.mig.manager.InsertTableManager;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -17,12 +15,10 @@ import org.slf4j.LoggerFactory;
 import c.y.mig.db.DBManager;
 import c.y.mig.manager.DBConnMasterManager;
 import c.y.mig.manager.InsertColumnManager;
-import c.y.mig.manager.InsertSqlManager;
 import c.y.mig.manager.MigrationListManager;
 import c.y.mig.manager.SelectColumnManager;
 import c.y.mig.model.DBConnMaster;
 import c.y.mig.model.InsertColumn;
-import c.y.mig.model.InsertSql;
 import c.y.mig.model.MigrationList;
 import c.y.mig.model.SelectColumn;
 import c.y.mig.util.StringUtil;
@@ -232,7 +228,7 @@ public class MigrationMetadataService {
     /**
      * Helper to fetch Primary Key column names from database metadata.
      */
-    private String fetchPrimaryKey(Connection conn, String fullTableName, String dbType) {
+    public String fetchPrimaryKey(Connection conn, String fullTableName, String dbType) {
         if (conn == null || StringUtil.empty(fullTableName)) return null;
         
         String catalog = null;

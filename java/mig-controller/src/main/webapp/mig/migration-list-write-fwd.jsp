@@ -158,6 +158,11 @@
                 } else {
                     setBulkMode(false);
                 }
+
+                // 쓰레드 타입일 경우 멀티 쓰레드 사용 기본 Y
+                if ($(this).val() == "THREAD" || $(this).val() == "THREAD_IDX") {
+                    $("select[name='thread_use_yn']").val("Y");
+                }
             });
         });
     </script>

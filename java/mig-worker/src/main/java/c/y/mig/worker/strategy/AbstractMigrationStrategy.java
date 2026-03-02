@@ -225,8 +225,13 @@ public abstract class AbstractMigrationStrategy implements MigrationStrategy {
             if (lowerType.contains("mariadb") || lowerType.contains("mysql") || lowerType.contains("maria")) {
                 return "`" + id + "`";
             }
+            if (lowerType.contains("postgresql") || lowerType.contains("postgres")) {
+                // PostgreSQL: quoting forces case-sensitivity. 
+                // Return unquoted so it folds to lowercase and matches standard naming.
+                return id;
+            }
         }
-        // PostgreSQL, Oracle, Tibero, etc. (ANSI SQL)
+        // Oracle, Tibero, etc. (ANSI SQL)
         return "\"" + id + "\"";
     }
 
