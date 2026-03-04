@@ -71,8 +71,18 @@
 
         function changeMigType() {
             var type = $("#mig_type").val();
+            
+            // Reset disabled states for shared properties
+            $("#hidden_target_table").prop("disabled", false);
+            $("#hidden_source_pk").prop("disabled", false);
+            $("#insert_type_table").prop("disabled", false);
+            
+            $("#nt_target_table").prop("disabled", true);
+            $("#nt_insert_type").prop("disabled", true);
+
             if (type == "TABLE" || type == "DDL") {
                 $("#table_settings_area").show();
+                $("#normal_thread_settings").hide();
                 
                 if (type == "TABLE") {
                     $("#strategy_area").show();
@@ -81,6 +91,12 @@
                     $("select[name='target_strategy']").val(""); // Reset to default when hidden
                 }
                 
+                // DDL일 경우 Insert Type 감추기
+                if (type == "DDL") {
+                    $("#insert_type_table_container").hide();
+                } else {
+                    $("#insert_type_table_container").show();
+                }
                 if (type == "DDL") {
                     $("#truncate_label").text("기존 테이블 삭제 (DROP) 여부");
                     $("#sql_label").text("SQL 문장 또는 대상 테이블명");
@@ -88,7 +104,7 @@
                     
                     // Disable bulk areas for DDL single edit
                     $("textarea[name='source_pk_area']").prop("disabled", true).addClass("bg-light");
-                    $("textarea[name='target_table_area']").prop("disabled", true).addClass("bg-light");
+                    $("textarea[name='target_table_area']").prop("disabled", false).removeClass("bg-light");
                 } else if (type == "TABLE") {
                     $("#truncate_label").text("기존 데이터 삭제 (TRUNCATE) 여부");
                     $("#sql_label").text("대상 테이블명");
@@ -122,6 +138,45 @@
                 } else {
                     $("#thread_options_area").show();
                 }
+            }
+            
+            // 下단부 공통 파라미터 (Target Table, Insert Type, Truncate) 영역 제어
+            if (type == "NORMAL" || type == "THREAD" || type == "THREAD_IDX" || type == "DDL") {
+                $("#normal_thread_settings").show();
+                
+                // 공통 활성화
+                $("#nt_target_table").prop("disabled", false);
+                
+                if (type == "DDL") {
+                    $("#nt_insert_type_container").hide();
+                    $("#nt_insert_type").prop("disabled", true);
+                    
+                    $("#nt_truncate_container").show();
+                    $("#nt_truncate_yn").prop("disabled", false);
+                    
+                    $("#truncate_table_container").hide();
+                    $("#truncate_yn_table").prop("disabled", true);
+                } else {
+                    $("#nt_insert_type_container").show();
+                    $("#nt_insert_type").prop("disabled", false);
+                    
+                    $("#nt_truncate_container").hide();
+                    $("#nt_truncate_yn").prop("disabled", true);
+                    
+                    // TABLE 타입 등은 상단 truncate 노출 
+                    $("#truncate_table_container").show();
+                    $("#truncate_yn_table").prop("disabled", false);
+                }
+                
+                // Disable hidden fields
+                $("#hidden_target_table").prop("disabled", true);
+                if (type != "DDL") {
+                    $("#insert_type_table").prop("disabled", true);
+                }
+            } else {
+                $("#normal_thread_settings").hide();
+                $("#truncate_table_container").show();
+                $("#truncate_yn_table").prop("disabled", false);
             }
         }
 
@@ -159,12 +214,27 @@
                     setBulkMode(false);
                 }
 
-                // 쓰레드 타입일 경우 멀티 쓰레드 사용 기본 Y
-                if ($(this).val() == "THREAD" || $(this).val() == "THREAD_IDX") {
-                    $("select[name='thread_use_yn']").val("Y");
-                }
-            });
+            // 쓰레드 타입일 경우 멀티 쓰레드 사용 기본 Y
+            if ($(this).val() == "THREAD" || $(this).val() == "THREAD_IDX") {
+                $("select[name='thread_use_yn']").val("Y");
+            }
         });
+
+        // Initialize display switch state
+        var displayYn = "${master.display_yn}";
+        if (displayYn == "N") {
+            $("#display_yn_switch").prop("checked", false);
+            $("input[name='display_yn']").val("N");
+        } else {
+            $("#display_yn_switch").prop("checked", true);
+            $("input[name='display_yn']").val("Y");
+        }
+
+        // Toggle display_yn hidden value when switch changes
+        $("#display_yn_switch").change(function() {
+            $("input[name='display_yn']").val($(this).is(":checked") ? "Y" : "N");
+        });
+    });
     </script>
 </head>
 <body class="p-4">
@@ -256,20 +326,20 @@
                                     <div id="table_settings_area" class="col-12 bg-light p-3 rounded-3 border mb-3" style="display:none;">
                                         <c:if test="${master.mode eq 'update'}">
                                             <input type="hidden" name="source_table" value="${master.source_table}">
-                                            <input type="hidden" name="target_table" value="${master.target_table}">
-                                            <input type="hidden" name="source_pk" value="${master.source_pk}">
+                                            <input type="hidden" name="target_table" id="hidden_target_table" value="${master.target_table}">
+                                            <input type="hidden" name="source_pk" id="hidden_source_pk" value="${master.source_pk}">
                                         </c:if>
                                         <div class="row g-3 mt-1">
-                                            <div class="col-md-6">
+                                            <div class="col-md-6" id="truncate_table_container">
                                                 <label class="form-label" id="truncate_label">데이터 삭제 여부</label>
-                                                <select name="truncate_yn" class="form-select border-warning">
+                                                <select name="truncate_yn" id="truncate_yn_table" class="form-select border-warning">
                                                     <option value="N" <c:if test="${master.truncate_yn eq 'N'}">selected</c:if>>N (데이터 유지)</option>
                                                     <option value="Y" <c:if test="${master.truncate_yn eq 'Y'}">selected</c:if>>Y (기존 데이터 삭제)</option>
                                                 </select>
                                             </div>
-                                            <div class="col-md-6">
+                                            <div class="col-md-6" id="insert_type_table_container">
                                                 <label class="form-label">저장 방식 (Insert Type)</label>
-                                                <jaes:codeselect name="insert_type" id="insert_type" group="pageCode.code.code-0007" selected="${master.insert_type}" />
+                                                <jaes:codeselect name="insert_type" id="insert_type_table" group="pageCode.code.code-0007" selected="${master.insert_type}" styleClass="form-select" />
                                             </div>
                                         </div>
                                         </div>
@@ -278,6 +348,25 @@
                                     <div id="single_sql_area" class="col-12">
                                         <label class="form-label" id="sql_label">SQL 문장 또는 대상 정보</label>
                                         <textarea name="sql_string" class="form-control font-monospace" rows="10" placeholder="SELECT * FROM [테이블명] 또는 이관 대상 물리명 하나를 입력하세요.">${master.sql_string}</textarea>
+                                        
+                                        <!-- NORMAL, THREAD, THREAD_IDX, DDL 설정 -->
+                                        <div id="normal_thread_settings" class="row g-3 mt-2" style="display:none;">
+                                            <div class="col-md-6" id="nt_truncate_container" style="display:none;">
+                                                <label class="form-label text-warning"><i class="bi bi-trash me-1"></i>기존 테이블 삭제 (DROP) 여부</label>
+                                                <select name="truncate_yn" id="nt_truncate_yn" class="form-select border-warning shadow-sm">
+                                                    <option value="N" <c:if test="${master.truncate_yn eq 'N'}">selected</c:if>>N (데이터/테이블 유지)</option>
+                                                    <option value="Y" <c:if test="${master.truncate_yn eq 'Y'}">selected</c:if>>Y (기존 항목 삭제)</option>
+                                                </select>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <label class="form-label text-success"><i class="bi bi-table me-1"></i>타겟 테이블명 (Target Table)</label>
+                                                <input type="text" name="target_table" id="nt_target_table" class="form-control border-success shadow-sm" value="${master.target_table}" placeholder="타겟 테이블명을 입력하세요">
+                                            </div>
+                                            <div class="col-md-6" id="nt_insert_type_container">
+                                                <label class="form-label text-success"><i class="bi bi-save me-1"></i>저장 방식 (Insert Type)</label>
+                                                <jaes:codeselect name="insert_type" id="nt_insert_type" group="pageCode.code.code-0007" selected="${master.insert_type}" styleClass="form-select border-success shadow-sm" />
+                                            </div>
+                                        </div>
                                     </div>
 
                                     <div id="bulk_table_area" class="col-12" style="display:none;">
@@ -335,8 +424,8 @@
                                     <div class="col-12 mt-3 p-3 bg-white rounded-3 border">
                                         <div class="form-check form-switch">
                                             <label class="form-check-label fw-bold" for="display_yn_switch">목록 노출 (Display)</label>
-                                            <input class="form-check-input" type="checkbox" id="display_yn_switch" checked>
-                                            <input type="hidden" name="display_yn" value="Y">
+                                            <input class="form-check-input" type="checkbox" id="display_yn_switch">
+                                            <input type="hidden" name="display_yn" value="${master.display_yn}">
                                         </div>
                                         <p class="small text-muted mb-0 mt-1">이관 목록 화면에 해당 작업을 표시할지 여부입니다.</p>
                                     </div>

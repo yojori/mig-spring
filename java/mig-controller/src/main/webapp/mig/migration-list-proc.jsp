@@ -35,6 +35,30 @@
     }
     // 2. Standard Single Registration or Update
     else {
+        // Helper to fetch PK if empty for NORMAL/THREAD types
+        if (("NORMAL".equals(master.getMig_type()) || "THREAD".equals(master.getMig_type()) || "THREAD_IDX".equals(master.getMig_type())) && StringUtil.empty(master.getSource_pk()) && !StringUtil.empty(master.getTarget_table())) {
+            if (!StringUtil.empty(master.getSource_db_alias())) {
+                c.y.mig.manager.DBConnMasterManager dbm = new c.y.mig.manager.DBConnMasterManager();
+                c.y.mig.model.DBConnMaster dbSearch = new c.y.mig.model.DBConnMaster();
+                dbSearch.setMaster_code(master.getSource_db_alias());
+                c.y.mig.model.DBConnMaster sourceMaster = dbm.find(dbSearch);
+                if (sourceMaster != null) {
+                    java.sql.Connection sourceConn = null;
+                    try {
+                        sourceConn = c.y.mig.db.DBManager.getConnection(sourceMaster);
+                        String fetchedPk = metadataService.fetchPrimaryKey(sourceConn, master.getTarget_table(), sourceMaster.getDb_type());
+                        if (!StringUtil.empty(fetchedPk)) {
+                            master.setSource_pk(fetchedPk);
+                        }
+                    } catch (Exception e) {
+                        // Ignore, PK will remain empty
+                    } finally {
+                        c.y.mig.db.DBManager.close(null, null, sourceConn);
+                    }
+                }
+            }
+        }
+
         if ("update".equals(mode)) {
             master.setUpdate_date(new Date());
             

@@ -102,7 +102,7 @@ public class NormalMigrationStrategy extends AbstractMigrationStrategy {
 
             // 3. Iterate and Batch Insert
             int rowCount = 0;
-            int batchSize = 5000; // Increased for performance
+            int batchSize = 10000; // Increased for performance
             int totalInserted = 0;
             long totalRead = 0;
 

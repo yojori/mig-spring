@@ -15,8 +15,8 @@
         // 등록 시 기본값 설정
         master.setMode("insert");
         master.setThread_use_yn("N");
-        master.setThread_count(10);
-        master.setPage_count_per_thread(10000);
+        master.setThread_count(20);
+        master.setPage_count_per_thread(5000);
         master.setExecute_yn("Y");
         master.setDisplay_yn("Y");
         // DB 연결 해서 Max + 10 으로 가져오기
