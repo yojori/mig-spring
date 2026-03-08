@@ -64,6 +64,7 @@ public abstract class Manager implements InterfaceManager {
     public final String RESULT_HD = "ZXXMIG_RESULT_HD";
     public final String RESULT_DT = "ZXXMIG_RESULT_DT";
     public final String WORK_LIST = "ZXXMIG_WORK_LIST";
+    public final String WORK_DETAIL = "ZXXMIG_WORK_DETAIL";
 
     private Search form;
     private int pageGubun;

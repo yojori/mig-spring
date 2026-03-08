@@ -9,6 +9,7 @@ import c.y.mig.model.InsertSql;
 import c.y.mig.model.InsertTable;
 import c.y.mig.model.MigrationList;
 import c.y.mig.model.MigrationSchema;
+import c.y.mig.model.WorkDetail;
 import c.y.mig.worker.service.DynamicDataSource;
 
 public abstract class AbstractMigrationStrategy implements MigrationStrategy {
@@ -17,6 +18,32 @@ public abstract class AbstractMigrationStrategy implements MigrationStrategy {
 
     @Autowired
     protected DynamicDataSource dynamicDataSource; // To connect to Source/Target
+
+    @Autowired
+    protected c.y.mig.worker.client.WorkerClient workerClient;
+
+    protected void saveWorkDetail(int workSeq, int threadIdx, int pagingIdx, String queryParams, 
+                                  int readCnt, int readMs, int procCnt, int procMs, 
+                                  String status, String errMsg) {
+        try {
+            WorkDetail detail = new WorkDetail();
+            detail.setWork_seq(workSeq);
+            detail.setThread_idx(threadIdx);
+            detail.setPaging_idx(pagingIdx);
+            detail.setQuery_params(queryParams);
+            detail.setRead_cnt(readCnt);
+            detail.setRead_ms(readMs);
+            detail.setProc_cnt(procCnt);
+            detail.setProc_ms(procMs);
+            detail.setStatus(status);
+            detail.setErr_msg(errMsg);
+            
+            workerClient.saveWorkDetail(detail);
+        } catch (Exception e) {
+            log.error("Failed to save work detail log", e);
+        }
+    }
+
 
     @Override
     public abstract void execute(MigrationSchema schema, MigrationList workList, ProgressListener listener) throws Exception;
@@ -268,7 +295,7 @@ public abstract class AbstractMigrationStrategy implements MigrationStrategy {
             if (col.getSqlFuncBindCols() != null) {
                 for (String bindCol : col.getSqlFuncBindCols()) {
                     Object bindVal = row.get(bindCol.toUpperCase()); 
-                    pstmt.setObject(pIdx++, bindVal);
+                    pstmt.setObject(pIdx++, convertOracleType(bindVal));
                 }
             }
             return pIdx;
@@ -283,8 +310,31 @@ public abstract class AbstractMigrationStrategy implements MigrationStrategy {
         } else {
             val = row.get(col.getInsert_data().toUpperCase()); 
         }
-        pstmt.setObject(pIdx++, val);
+        pstmt.setObject(pIdx++, convertOracleType(val));
         return pIdx;
+    }
+
+    /**
+     * Converts Oracle proprietary types (oracle.sql.TIMESTAMP, etc.) to standard Java/JDBC types.
+     * Uses reflection to avoid direct dependency on Oracle classes.
+     */
+    private Object convertOracleType(Object obj) {
+        if (obj == null) return null;
+        String className = obj.getClass().getName();
+        if (className.startsWith("oracle.sql.")) {
+            try {
+                if (className.endsWith("TIMESTAMP")) {
+                    return obj.getClass().getMethod("timestampValue").invoke(obj);
+                } else if (className.endsWith("DATE")) {
+                    return obj.getClass().getMethod("dateValue").invoke(obj);
+                } else if (className.endsWith("TIMESTAMPTZ") || className.endsWith("TIMESTAMPLTZ")) {
+                    return obj.getClass().getMethod("timestampValue").invoke(obj);
+                }
+            } catch (Exception e) {
+                log.warn("Failed to convert Oracle proprietary type: " + className, e);
+            }
+        }
+        return obj;
     }
 
     protected void setTargetParams(java.sql.PreparedStatement pstmt, InsertSql iSql, java.util.List<InsertColumn> columns, java.util.Map<String, Object> row) throws Exception {

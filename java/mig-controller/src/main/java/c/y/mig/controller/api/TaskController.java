@@ -61,4 +61,10 @@ public class TaskController {
     public java.util.List<c.y.mig.model.TypeMapping> getTypeMappings() {
         return taskService.getTypeMappings();
     }
+
+    @PostMapping("/log")
+    public void saveWorkDetail(@RequestBody c.y.mig.model.WorkDetail detail) {
+        taskService.saveWorkDetail(detail);
+    }
 }
+

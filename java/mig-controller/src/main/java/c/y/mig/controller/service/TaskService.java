@@ -15,4 +15,7 @@ public interface TaskService {
     java.util.List<c.y.mig.model.DBConnMaster> getAllDBConnections();
 
     java.util.List<c.y.mig.model.TypeMapping> getTypeMappings();
+
+    void saveWorkDetail(c.y.mig.model.WorkDetail detail);
 }
+

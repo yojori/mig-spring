@@ -76,6 +76,17 @@
             <artifactId>postgresql</artifactId>
         </dependency>
         <dependency>
+            <groupId>com.oracle.database.jdbc</groupId>
+            <artifactId>ojdbc11</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.tmax.tibero</groupId>
+            <artifactId>tibero-jdbc</artifactId>
+            <version>18.0</version>
+            <scope>system</scope>
+            <systemPath>${project.basedir}/../../lib/tibero7-jdbc-18.jar</systemPath>
+        </dependency>
+        <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-devtools</artifactId>
             <scope>runtime</scope>

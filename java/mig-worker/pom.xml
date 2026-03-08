@@ -59,6 +59,17 @@
             <artifactId>postgresql</artifactId>
             <scope>runtime</scope>
         </dependency>
+        <dependency>
+            <groupId>com.oracle.database.jdbc</groupId>
+            <artifactId>ojdbc11</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.tmax.tibero</groupId>
+            <artifactId>tibero-jdbc</artifactId>
+            <version>18.0</version>
+            <scope>system</scope>
+            <systemPath>${project.basedir}/../../lib/tibero7-jdbc-18.jar</systemPath>
+        </dependency>
     </dependencies>
 
     <build>

@@ -143,12 +143,15 @@ public class NormalMigrationStrategy extends AbstractMigrationStrategy {
 
                     totalInserted += rowCount;
                     long elapsed = System.currentTimeMillis() - lastMark;
+                    
+                    // Logging Detail
+                    saveWorkDetail(schema.getWork_seq(), 0, (totalInserted / batchSize), sqlSource, 
+                                   rowCount, (int)readTimeTotal, rowCount, (int)writeDuration, "SUCCESS", null);
+
                     log.info("Processed {} rows... (Current Batch - ReadTime: {}ms, WriteTime: {}ms, Total: {}ms)", 
                             totalInserted, readTimeTotal, writeDuration, elapsed);
                     
-                    // listener.onProgress removed within batch loop to reduce load
-                    
-                    // Reset batch specific read timer if you want, or keep cumulative
+                    // Reset batch specific read timer
                     readTimeTotal = 0; 
                     lastMark = System.currentTimeMillis();
                     rowCount = 0;

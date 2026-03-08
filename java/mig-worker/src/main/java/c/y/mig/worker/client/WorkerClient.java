@@ -100,4 +100,13 @@ public class WorkerClient {
             return new java.util.ArrayList<>();
         }
     }
+
+    public void saveWorkDetail(c.y.mig.model.WorkDetail detail) {
+        try {
+            restTemplate.postForObject(controllerUrl + "/log", detail, Void.class);
+        } catch (Exception e) {
+            log.error("Failed to save work detail: " + e.getMessage());
+        }
+    }
 }
+

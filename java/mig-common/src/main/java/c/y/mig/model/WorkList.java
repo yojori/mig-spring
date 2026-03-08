@@ -24,8 +24,10 @@ public class WorkList extends Search {
     private String mig_name;
     private String mig_master;
     private String truncate_yn;
+    private String mig_type;
     
     private String param_string; // Execution parameters (e.g. PK range)
+
 
     public String getDurationStr() {
         if (start_date == null || end_date == null) {
@@ -79,7 +81,11 @@ public class WorkList extends Search {
     public String getTruncate_yn() { return truncate_yn; }
     public void setTruncate_yn(String truncate_yn) { this.truncate_yn = truncate_yn; }
 
+    public String getMig_type() { return mig_type; }
+    public void setMig_type(String mig_type) { this.mig_type = mig_type; }
+
     private String orderBy;
+
     public String getOrderBy() { return orderBy; }
     public void setOrderBy(String orderBy) { this.orderBy = orderBy; }
 

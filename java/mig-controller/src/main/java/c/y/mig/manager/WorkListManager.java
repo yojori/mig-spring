@@ -25,7 +25,9 @@ public class WorkListManager extends Manager {
         sql.addField("A.*");
         sql.addField("B.mig_name");
         sql.addField("B.mig_master");
+        sql.addField("B.mig_type");
         sql.addField("C.truncate_yn");
+
         sql.addFrom(WORK_LIST + " A");
         sql.addInnerJoin(MIGRATION_LIST + " B", "A.mig_list_seq = B.mig_list_seq");
         sql.addLeftJoin(INSERT_SQL + " C", "A.mig_list_seq = C.mig_list_seq");
@@ -108,6 +110,8 @@ public class WorkListManager extends Manager {
                     entity.setMig_name(rs.getString("mig_name"));
                     entity.setMig_master(rs.getString("mig_master"));
                     entity.setTruncate_yn(rs.getString("truncate_yn"));
+                    entity.setMig_type(rs.getString("mig_type"));
+
                     
                     list.add(entity);
                     i++;

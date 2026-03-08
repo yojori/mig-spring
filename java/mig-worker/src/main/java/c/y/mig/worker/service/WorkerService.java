@@ -96,6 +96,11 @@ public class WorkerService implements CommandLineRunner, InitializingBean {
         try {
             // Get Config
             MigrationSchema schema = workerClient.getTaskConfig(taskId);
+            try {
+                schema.setWork_seq(Integer.parseInt(taskId));
+            } catch (Exception e) {
+                log.warn("Failed to parse taskId to int: {}", taskId);
+            }
 
             // Execute Logic with Listener
             migrationExecutor.execute(schema, (read, proc) -> {

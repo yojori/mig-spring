@@ -226,6 +226,10 @@ public class ThreadMigrationStrategy extends AbstractMigrationStrategy {
                 log.info("Thread {} processed Page {} (Rows: {}) - Read(Fetch): {}ms, Write(Batch): {}ms, Total: {}ms, Total elapsed: {} seconds", 
                         threadNum, currentPage, rowCount, fetchDuration, writeDuration, (stepEndTime - stepStartTime), String.format("%.3f", totalSeconds));
 
+                // Logging Detail
+                saveWorkDetail(schema.getWork_seq(), threadNum, currentPage, pagingQuery, 
+                               rowCount, (int)fetchDuration, rowCount, (int)writeDuration, "SUCCESS", null);
+
                 // Next Page for this thread
                 loopParams++;
                 currentPage = (threadCount * loopParams) + threadNum + 1;
@@ -233,6 +237,8 @@ public class ThreadMigrationStrategy extends AbstractMigrationStrategy {
 
         } catch (Exception e) {
             log.error("Error in thread " + threadNum, e);
+            saveWorkDetail(schema.getWork_seq(), threadNum, currentPage, "ERROR", 
+                           0, 0, 0, 0, "FAIL", e.getMessage());
             try { if (targetConn != null) targetConn.rollback(); } catch (SQLException ex) {}
         } finally {
             if (targetPstmts != null) {

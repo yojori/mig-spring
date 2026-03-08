@@ -416,14 +416,19 @@ public class KeysetMigrationStrategy extends AbstractMigrationStrategy {
                 long writeDuration = System.currentTimeMillis() - startWrite;
                 totalProcessed.addAndGet(rowCount);
                 
+                // Logging Detail
+                saveWorkDetail(schema.getWork_seq(), chunkIndex, 0, query, 
+                               rowCount, (int)fetchDuration, rowCount, (int)writeDuration, "SUCCESS", null);
+
                 log.info("Chunk [{}] Finished. Rows: {} - Read(Fetch): {}ms, Write(Batch): {}ms, Total: {}ms", 
                         chunkIndex, rowCount, fetchDuration, writeDuration, (System.currentTimeMillis() - startFetchRowTime));
             } else {
                 log.info("Chunk [{}] Finished. No rows found.", chunkIndex);
             }
-
         } catch (Exception e) {
             log.error("Error in Chunk " + chunkIndex, e);
+            saveWorkDetail(schema.getWork_seq(), chunkIndex, 0, "ERROR", 
+                           0, 0, 0, 0, "FAIL", e.getMessage());
             try { if (targetConn != null) targetConn.rollback(); } catch (SQLException ex) {}
         } finally {
             closeResources(sourceRs, sourcePstmt, sourceConn);

@@ -185,4 +185,11 @@ public class TaskServiceImpl implements TaskService {
         search.setUse_yn("Y");
         return mappingManager.getList(search);
     }
+
+    @Override
+    public void saveWorkDetail(c.y.mig.model.WorkDetail detail) {
+        c.y.mig.manager.WorkDetailManager detailManager = new c.y.mig.manager.WorkDetailManager();
+        detailManager.insert(detail);
+    }
 }
+

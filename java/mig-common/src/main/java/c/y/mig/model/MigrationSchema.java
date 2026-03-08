@@ -12,6 +12,7 @@ public class MigrationSchema extends Search {
 
     // Log 등록을 위한 Key
     private String result_hd_seq;
+    private int work_seq;
 
     private MigrationMaster master;
 
@@ -47,6 +48,14 @@ public class MigrationSchema extends Search {
 
     public void setResult_hd_seq(String result_hd_seq) {
         this.result_hd_seq = result_hd_seq;
+    }
+
+    public int getWork_seq() {
+        return work_seq;
+    }
+
+    public void setWork_seq(int work_seq) {
+        this.work_seq = work_seq;
     }
 
     public MigrationMaster getMaster() {

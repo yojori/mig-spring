@@ -159,6 +159,10 @@
                                                             <td class="text-center small text-muted">${list.worker_id}
                                                             </td>
                                                             <td class="text-center">
+                                                                <c:set var="canViewDetail" value="${list.mig_type eq 'THREAD' or list.mig_type eq 'THREAD_IDX'}" />
+                                                                <c:if test="${canViewDetail}">
+                                                                    <a href="javascript:viewDetail('${list.work_seq}')" class="text-decoration-none">
+                                                                </c:if>
                                                                 <c:choose>
                                                                     <c:when test="${list.status eq 'READY'}"><span
                                                                             class="badge bg-secondary status-badge">READY</span>
@@ -172,11 +176,17 @@
                                                                     <c:when test="${list.status eq 'FAIL'}"><span
                                                                             class="badge bg-danger status-badge">FAIL</span>
                                                                     </c:when>
+
+
                                                                     <c:otherwise><span
                                                                             class="badge bg-light text-dark border status-badge">${list.status}</span>
                                                                     </c:otherwise>
                                                                 </c:choose>
+                                                                <c:if test="${canViewDetail}">
+                                                                    </a>
+                                                                </c:if>
                                                             </td>
+
                                                             <td class="text-center small">
                                                                 <fmt:formatDate value="${list.start_date}"
                                                                     pattern="MM-dd HH:mm:ss" />
@@ -271,6 +281,13 @@
                                         }
                                     };
                                     xhr.send("mode=register&mig_list_seq=" + encodeURIComponent(seq) + "&mig_name=" + encodeURIComponent(name));
+                                }
+
+                                function viewDetail(workSeq) {
+                                    var url = "./migration-work-detail.jsp?work_seq=" + workSeq;
+                                    var name = "migration_detail_" + workSeq;
+                                    var specs = "width=1200,height=800,scrollbars=yes,resizable=yes";
+                                    window.open(url, name, specs);
                                 }
 
                                 var refreshTimer = null;
