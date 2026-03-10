@@ -133,15 +133,23 @@
                 $("select[name='target_strategy']").val("");
                 $("#sql_label").text("SQL Sentence");
                 
-                if (type == "NORMAL") {
+                if (type == "NORMAL" || type == "KAFKA") {
                     $("#thread_options_area").hide();
+                    
+                    if (type == "KAFKA") {
+                        $("#sql_label").html("<i class='bi bi-funnel text-primary me-1'></i>변환 규칙 (JSON Mapping Rules)");
+                        $("textarea[name='sql_string']").attr("placeholder", "Kafka 실시간 이관을 위한 JSON 형태의 변환 규칙(KFK_MAPPING)을 입력하세요.\n예시:\n{\n  \"mappings\": [\n    { \"target\": \"id\", \"source\": \"USER_ID\" }\n  ]\n}");
+                    } else {
+                        $("textarea[name='sql_string']").attr("placeholder", "SELECT * FROM [테이블명] 또는 이관 대상 물리명 하나를 입력하세요.");
+                    }
                 } else {
                     $("#thread_options_area").show();
+                    $("textarea[name='sql_string']").attr("placeholder", "SELECT * FROM [테이블명] 또는 이관 대상 물리명 하나를 입력하세요.");
                 }
             }
             
             // 下단부 공통 파라미터 (Target Table, Insert Type, Truncate) 영역 제어
-            if (type == "NORMAL" || type == "THREAD" || type == "THREAD_IDX" || type == "DDL") {
+            if (type == "NORMAL" || type == "THREAD" || type == "THREAD_IDX" || type == "DDL" || type == "KAFKA") {
                 $("#normal_thread_settings").show();
                 
                 // 공통 활성화
@@ -278,6 +286,7 @@
                                         <label class="form-label">이관 타입</label>
                                         <select name="mig_type" id="mig_type" class="form-select border-primary shadow-sm">
                                             <option value="NORMAL" <c:if test="${master.mig_type eq 'NORMAL'}">selected</c:if>>일반 (SQL 작성)</option>
+                                            <option value="KAFKA" <c:if test="${master.mig_type eq 'KAFKA'}">selected</c:if>>Kafka 실시간 이관</option>
                                             <option value="TABLE" <c:if test="${master.mig_type eq 'TABLE'}">selected</c:if>>테이블 복사 (TABLE Copy)</option>
                                             <option value="DDL" <c:if test="${master.mig_type eq 'DDL'}">selected</c:if>>테이블 생성 (DDL Create)</option>
                                             <option value="THREAD" <c:if test="${master.mig_type eq 'THREAD'}">selected</c:if>>멀티 스레드 (자동 페이징)</option>

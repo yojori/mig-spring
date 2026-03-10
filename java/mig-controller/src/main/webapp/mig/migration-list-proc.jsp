@@ -35,8 +35,8 @@
     }
     // 2. Standard Single Registration or Update
     else {
-        // Helper to fetch PK if empty for NORMAL/THREAD types
-        if (("NORMAL".equals(master.getMig_type()) || "THREAD".equals(master.getMig_type()) || "THREAD_IDX".equals(master.getMig_type())) && StringUtil.empty(master.getSource_pk()) && !StringUtil.empty(master.getTarget_table())) {
+        // Helper to fetch PK if empty for NORMAL/THREAD/KAFKA types
+        if (("NORMAL".equals(master.getMig_type()) || "THREAD".equals(master.getMig_type()) || "THREAD_IDX".equals(master.getMig_type()) || "KAFKA".equals(master.getMig_type())) && StringUtil.empty(master.getSource_pk()) && !StringUtil.empty(master.getTarget_table())) {
             if (!StringUtil.empty(master.getSource_db_alias())) {
                 c.y.mig.manager.DBConnMasterManager dbm = new c.y.mig.manager.DBConnMasterManager();
                 c.y.mig.model.DBConnMaster dbSearch = new c.y.mig.model.DBConnMaster();
@@ -69,6 +69,22 @@
             
             manager.update(master);
             
+            // Handle KAFKA mapping update
+            if ("KAFKA".equals(master.getMig_type()) && !StringUtil.empty(master.getSql_string())) {
+                c.y.mig.manager.KfkMappingManager mappingManager = new c.y.mig.manager.KfkMappingManager();
+                c.y.mig.model.KfkMapping mapping = mappingManager.find(master.getMig_list_seq());
+                if (mapping != null) {
+                    mapping.setTransformation_json(master.getSql_string());
+                    mappingManager.update(mapping);
+                } else {
+                    mapping = new c.y.mig.model.KfkMapping();
+                    mapping.setMig_list_seq(master.getMig_list_seq());
+                    mapping.setMapping_name("Mapping_" + master.getMig_list_seq());
+                    mapping.setTransformation_json(master.getSql_string());
+                    mappingManager.insert(mapping);
+                }
+            }
+            
             // Note: Legacy detail table sync (InsertSql, InsertTable) removed as metadata is now 1:1
         } else {
             master.setMig_list_seq(Config.getOrdNoSequence("ML"));
@@ -81,6 +97,16 @@
             }
             
             manager.insert(master);
+
+            // Handle KAFKA mapping insert
+            if ("KAFKA".equals(master.getMig_type()) && !StringUtil.empty(master.getSql_string())) {
+                c.y.mig.manager.KfkMappingManager mappingManager = new c.y.mig.manager.KfkMappingManager();
+                c.y.mig.model.KfkMapping mapping = new c.y.mig.model.KfkMapping();
+                mapping.setMig_list_seq(master.getMig_list_seq());
+                mapping.setMapping_name("Mapping_" + master.getMig_list_seq());
+                mapping.setTransformation_json(master.getSql_string());
+                mappingManager.insert(mapping);
+            }
 
             // Auto register columns for single insert (SQL type etc.)
             metadataService.autoRegisterColumns(master);

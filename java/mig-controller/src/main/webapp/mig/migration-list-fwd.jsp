@@ -164,11 +164,11 @@
                                     <a href="javascript:goPopup('${list.mig_master}','${list.mig_list_seq}');" class="text-decoration-none text-dark">${list.mig_list_seq}</a>
                                 </td>
                                 <td>
-                                    <c:if test="${list.mig_type=='NORMAL' || list.mig_type=='THREAD' || list.mig_type=='THREAD_IDX' || list.mig_type=='THREAD_MULTI'}">
+                                    <c:if test="${list.mig_type=='NORMAL' || list.mig_type=='THREAD' || list.mig_type=='THREAD_IDX' || list.mig_type=='THREAD_MULTI' || list.mig_type=='KAFKA'}">
                                         <a href="javascript:goPopupSelect('${list.mig_list_seq}');" class="fw-bold text-primary text-decoration-none">
                                     </c:if>
                                     ${list.mig_name}
-                                    <c:if test="${list.mig_type=='NORMAL' || list.mig_type=='THREAD' || list.mig_type=='THREAD_IDX' || list.mig_type=='THREAD_MULTI'}"></a></c:if>
+                                    <c:if test="${list.mig_type=='NORMAL' || list.mig_type=='THREAD' || list.mig_type=='THREAD_IDX' || list.mig_type=='THREAD_MULTI' || list.mig_type=='KAFKA'}"></a></c:if>
                                 </td>
                                 <td class="text-center small">
                                     <span class="fw-bold">${list.source_db_name}</span><br>
@@ -189,7 +189,7 @@
                                             </div>
                                         </c:if>
                                         <div class="btn-group btn-group-sm">
-                                            <c:if test="${list.mig_type=='NORMAL' || list.mig_type=='THREAD' || list.mig_type=='THREAD_IDX' || list.mig_type=='THREAD_MULTI'}">
+                                            <c:if test="${list.mig_type=='NORMAL' || list.mig_type=='THREAD' || list.mig_type=='THREAD_IDX' || list.mig_type=='THREAD_MULTI' || list.mig_type=='KAFKA'}">
                                                 <a href="javascript:goPopupSelect('${list.mig_list_seq}');" class="btn btn-outline-primary btn-sm" title="Columns"><i class="bi bi-card-checklist"></i></a>
                                                 <a href="javascript:goPopupInsert('${list.mig_list_seq}');" class="btn btn-outline-secondary btn-sm" title="Insert SQL"><i class="bi bi-file-earmark-code"></i></a>
                                                 <a href="javascript:goPopupRelation('${list.mig_list_seq}');" class="btn btn-outline-secondary btn-sm" title="Mapping"><i class="bi bi-diagram-3"></i></a>
@@ -201,10 +201,10 @@
                                     </div>
                                 </td>
                                 <td class="text-center">
-                                    <c:if test="${list.mig_type ne 'DDL'}">${list.thread_count}</c:if>
+                                    <c:if test="${list.mig_type ne 'DDL' and list.mig_type ne 'KAFKA'}">${list.thread_count}</c:if>
                                 </td>
                                 <td class="text-center">
-                                    <c:if test="${list.mig_type ne 'DDL'}">${list.page_count_per_thread}</c:if>
+                                    <c:if test="${list.mig_type ne 'DDL' and list.mig_type ne 'KAFKA'}">${list.page_count_per_thread}</c:if>
                                 </td>
                                 <td class="text-center">
                                      <c:choose>

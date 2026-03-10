@@ -82,3 +82,31 @@ To prevent the Migration Engineer from becoming a bottleneck and to ensure clear
 3. **mig-kafka (Dynamic Execution)**:
    - During runtime, the `mig-kafka-consumer` reads the transformation rules from the DB.
    - Incoming Kafka messages (Source Schema) are automatically transformed to the Target Schema format based on these rules before being UPSERTed.
+
+## 6. Current Progress (as of March 2026)
+
+### 6.1. Dynamic Transformer PoC (`mig-kafka` module)
+- Created the **`mig-kafka`** sub-module in the `mig-spring` project.
+- Implemented **`SpelMessageTransformer`**: A Proof of Concept using Spring Expression Language (SpEL) to dynamically transform Source JSON payloads into Target JSON payloads based solely on mapping rules (e.g., concatenating strings, conditional logic), proving that hard-coded Java logic is not required for data transformations.
+
+### 6.2. Metadata Tables Design
+- Designed the core Control Plane tables (`KFK_TEMPLATE`, `KFK_PARAM`, `KFK_MAPPING`, `KFK_OFFSET`) required to store connector settings, parameters, transformation JSON rules, and zero-downtime offset markers.
+- Created DDL script: `doc/0308-mig-kafka/kfk_meta_tables.sql`.
+
+### 6.3. UI & Execution Integration
+- Updated `<code-0002>` in `pageCode.xml` to include the `<option value="KAFKA">Kafka 실시간 이관</option>` type.
+- Modified the migration registration UI (`migration-list-write-fwd.jsp`) to hide batch-specific thread options and provide a JSON Mapping Rule input area when `KAFKA` type is selected.
+
+## 7. Next Decision Points
+
+To proceed with the Kafka Real-time Migration implementation, the following architectural choices must be made:
+
+### Option A: Controller API Focus (Bottom-Up)
+Develop the backend logic within `mig-controller` to handle the CRUD operations for the newly designed `KFK_` meta tables.
+- **Tasks**: Create MyBatis XMLs, DAOs, Models, and Services in `mig-controller` for `KFK_TEMPLATE`, `KFK_PARAM`, etc., and integrate them fully into the JSP UI to save/load JSON mapping rules.
+- **Benefit**: Completes the UI/Control Plane flow first, making it easy for the Business PL to start inputting mapping rules.
+
+### Option B: Kafka Client Integration (Top-Down)
+Jump directly into the `mig-kafka` module and implement the actual Spring Kafka infrastructure.
+- **Tasks**: Set up `@KafkaListener` and `KafkaTemplate`, configure JSON serializers/deserializers, and connect the `SpelMessageTransformer` to a live (or local Docker) Kafka topic to see messages actively transformed.
+- **Benefit**: Validates the actual messaging throughput and serialization mechanics before worrying about how the UI saves the configurations.

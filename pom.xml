@@ -18,6 +18,7 @@
         <module>java/mig-controller</module>
         <module>java/mig-worker</module>
         <module>java/mig-common</module>
+        <module>java/mig-kafka</module>
     </modules>
     <!-- Trigger VS Code Java Project Update (Touched by Assistant) -->
 </project>

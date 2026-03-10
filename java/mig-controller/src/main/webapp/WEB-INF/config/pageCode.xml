@@ -12,6 +12,7 @@
             <!--
             <option value="THREAD_MULTI">Thread(MULTI) 이관</option>
             -->
+            <option value="KAFKA">Kafka 실시간 이관</option>
             <option value="TABLE">테이블단위 이관</option>
             <option value="DDL">테이블생성(DDL)</option>
             <option value="PROC">프로시져 호출</option>
