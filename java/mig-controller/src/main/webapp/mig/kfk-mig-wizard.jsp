@@ -11,6 +11,13 @@
     
     // In Level 0, we don't have connectors yet.
     // In Level 1+, we need the source_connector and sink_connector to filter params.
+    String registration_type = request.getParameter("registration_type");
+    // migListInfo is not available here, so initialize with a default or null for now.
+    // It will be updated later once migListInfo is fetched.
+    if (registration_type == null || registration_type.isEmpty()) {
+        registration_type = "BOTH"; // Default value, will be overridden if migListInfo has it
+    }
+
     String source_connector = request.getParameter("source_connector"); 
     String sink_connector = request.getParameter("sink_connector"); 
 
@@ -19,27 +26,17 @@
     List<KfkParamTemplate> sourceParams = new ArrayList<KfkParamTemplate>();
     List<KfkParamTemplate> sinkParams = new ArrayList<KfkParamTemplate>();
 
-    List<KfkParamTemplate> sourcePreviewParams = new ArrayList<KfkParamTemplate>();
-    List<KfkParamTemplate> sinkPreviewParams = new ArrayList<KfkParamTemplate>();
-
     if (level == 0) {
         params = manager.getList(level, null);
     } else {
         sourceParams = manager.getList(level, source_connector);
         sinkParams = manager.getList(level, sink_connector);
-        
-        if (level == 3) {
-            sourcePreviewParams = manager.getAllLevelsList(source_connector);
-            sinkPreviewParams = manager.getAllLevelsList(sink_connector);
-        }
     }
 
     // Deduplicate lists by param_key while maintaining order
     params = deduplicateParams(params);
     sourceParams = deduplicateParams(sourceParams);
     sinkParams = deduplicateParams(sinkParams);
-    sourcePreviewParams = deduplicateParams(sourcePreviewParams);
-    sinkPreviewParams = deduplicateParams(sinkPreviewParams);
 
     // Helper method for deduplication
 %>
@@ -104,26 +101,6 @@
         }
     }
 
-    // Fetch API URLs from CodeManager for Level 3 curl generation
-    String source_connector_url = "";
-    String sink_connector_url = "";
-    if (source_connector != null && !source_connector.isEmpty()) {
-        for (Map<String, String> opt : CodeManager.getCodeList("KFK-0041")) {
-            if (source_connector.equals(opt.get("value"))) {
-                source_connector_url = opt.get("ec1");
-                break;
-            }
-        }
-    }
-    if (sink_connector != null && !sink_connector.isEmpty()) {
-        for (Map<String, String> opt : CodeManager.getCodeList("KFK-0042")) {
-            if (sink_connector.equals(opt.get("value"))) {
-                sink_connector_url = opt.get("ec1");
-                break;
-            }
-        }
-    }
-
     // Fetch saved parameters if they exist
     Map<String, String> paramMap = new HashMap<String, String>();
     if (mig_list_seq != null && !mig_list_seq.isEmpty()) {
@@ -142,11 +119,9 @@
         }
     }
 
-    request.setAttribute("params", params);
+    request.setAttribute("registration_type", registration_type);
     request.setAttribute("sourceParams", sourceParams);
     request.setAttribute("sinkParams", sinkParams);
-    request.setAttribute("sourcePreviewParams", sourcePreviewParams);
-    request.setAttribute("sinkPreviewParams", sinkPreviewParams);
     request.setAttribute("source_connector", source_connector);
     request.setAttribute("sink_connector", sink_connector);
     request.setAttribute("sourceDb", sourceDb);
@@ -155,9 +130,6 @@
     request.setAttribute("mig_master", mig_master);
     request.setAttribute("mig_list_seq", mig_list_seq);
     request.setAttribute("migListInfo", migListInfo);
-    request.setAttribute("mig_list_seq", mig_list_seq);
-    request.setAttribute("source_connector_url", source_connector_url);
-    request.setAttribute("sink_connector_url", sink_connector_url);
     request.setAttribute("level", level);
     request.setAttribute("masterInfo", masterInfo);
     

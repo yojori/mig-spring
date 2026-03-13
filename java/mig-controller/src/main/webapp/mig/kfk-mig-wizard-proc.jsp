@@ -46,40 +46,28 @@
     Map<String, String> keyToTypeMap = new HashMap<String, String>();
     Map<String, KfkParamTemplate> tplMap = new HashMap<String, KfkParamTemplate>();
     
+    KfkMigList migListInfo = kfkListManager.getRecord(mig_list_seq);
+    if (source_connector == null || source_connector.isEmpty()) {
+        source_connector = (migListInfo != null) ? migListInfo.getSource_connector() : "";
+    }
+    if (sink_connector == null || sink_connector.isEmpty()) {
+        sink_connector = (migListInfo != null) ? migListInfo.getSink_connector() : "";
+    }
+
     // Level 0 params
     for (KfkParamTemplate t : tm.getList(0, null)) {
-        String key = t.getParam_key();
-        String type = "COMMON";
-        
-        if ("source_connector".equals(key)) {
-            if ("SINK_ONLY".equals(registration_type)) continue;
-            type = "SOURCE";
-        } else if ("sink_connector".equals(key)) {
-            if ("SOURCE_ONLY".equals(registration_type)) continue;
-            type = "SINK";
-        }
-        
-        keyToTypeMap.put(key, type);
-        tplMap.put(key, t);
+        tplMap.put("COMMON:" + t.getParam_key(), t);
     }
-    // Source params (Only if registered)
-    if (("SOURCE_ONLY".equals(registration_type) || "BOTH".equals(registration_type)) 
-        && source_connector != null && !source_connector.isEmpty()) {
-        for (int i=1; i<=3; i++) {
-            for (KfkParamTemplate t : tm.getList(i, source_connector)) {
-                keyToTypeMap.put(t.getParam_key(), "SOURCE");
-                tplMap.put(t.getParam_key(), t);
-            }
+    // Source params
+    if (source_connector != null && !source_connector.isEmpty()) {
+        for (KfkParamTemplate t : tm.getAllLevelsList(source_connector)) {
+            tplMap.put(source_connector + ":" + t.getParam_key(), t);
         }
     }
-    // Sink params (Only if registered)
-    if (("SINK_ONLY".equals(registration_type) || "BOTH".equals(registration_type)) 
-        && sink_connector != null && !sink_connector.isEmpty()) {
-        for (int i=1; i<=3; i++) {
-            for (KfkParamTemplate t : tm.getList(i, sink_connector)) {
-                keyToTypeMap.put(t.getParam_key(), "SINK");
-                tplMap.put(t.getParam_key(), t);
-            }
+    // Sink params
+    if (sink_connector != null && !sink_connector.isEmpty()) {
+        for (KfkParamTemplate t : tm.getAllLevelsList(sink_connector)) {
+            tplMap.put(sink_connector + ":" + t.getParam_key(), t);
         }
     }
     
@@ -107,14 +95,23 @@
                 realKey = fullKey.substring(8);
             }
             
-            KfkParamTemplate tpl = tplMap.get(realKey);
-            int level = (tpl != null) ? tpl.getDp_level() : 0;
-            int order = (tpl != null) ? tpl.getDp_order() : 999;
+            // Try specific connector template first
+            String connector = "SOURCE".equals(cType) ? source_connector : ("SINK".equals(cType) ? sink_connector : null);
+            String cacheKey = (connector != null ? connector : "COMMON") + ":" + realKey;
+            KfkParamTemplate tpl = tplMap.get(cacheKey);
             
-            kfkListManager.saveParams(mig_list_seq, cType, realKey, val, level, order);
+            // Fallback to searching by key if not found with specific connector
+            if (tpl == null) {
+                tpl = tplMap.get("COMMON:" + realKey);
+            }
+            
+            int dpLevel = (tpl != null) ? tpl.getDp_level() : 0;
+            int dpOrder = (tpl != null) ? tpl.getDp_order() : 999;
+            
+            kfkListManager.saveParams(mig_list_seq, cType, realKey, val, dpLevel, dpOrder);
         }
     }
 %>
 <script>
-    location.href = "/mig/migration-list.jsp?mig_master=<%=mig_master%>";
+    location.href = "kfk-mig-wizard-result.jsp?mig_master=<%=mig_master%>&mig_list_seq=<%=mig_list_seq%>";
 </script>

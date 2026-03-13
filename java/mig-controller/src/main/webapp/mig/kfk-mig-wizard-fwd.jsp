@@ -1,5 +1,5 @@
 <%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
-<%@ page import="java.util.*,c.y.mig.model.*" %>
+<%@ page import="java.util.*,java.util.List,java.util.Set,java.util.HashSet,java.util.Map,c.y.mig.model.*" %>
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
 <%@ taglib prefix="jaes" uri="http://www.yojori.com/taglib/jaes" %>
 <%@include file="/mig/session-admin-check.jsp"%>
@@ -147,9 +147,14 @@
     </div>
 
     <form name="frmWizard" method="post" action="kfk-mig-wizard.jsp">
-        <input type="hidden" name="level" value="${level}">
         <input type="hidden" name="mig_master" value="${mig_master}">
         <input type="hidden" name="mig_list_seq" value="${mig_list_seq}">
+        <input type="hidden" name="registration_type" value="${registration_type}">
+        <input type="hidden" name="source_connector" value="${source_connector}">
+        <input type="hidden" name="sink_connector" value="${sink_connector}">
+        <input type="hidden" name="sourceDb" value="${sourceDb}">
+        <input type="hidden" name="targetDb" value="${targetDb}">
+        <input type="hidden" name="level" value="${level}">
         
         <%
             // Prepare a set of keys for parameters that are rendered in the current level
@@ -170,18 +175,14 @@
             </c:if>
         </c:forEach>
         
-        <%-- Handle registration_type separately - only as hidden if not in level 0 --%>
-        <c:if test="${level gt 0}">
-            <input type="hidden" name="registration_type" value="${not empty param.registration_type ? param.registration_type : savedParam.registration_type}">
-        </c:if>
+        <%-- Handle registration_type already handled at line 152 --%>
 
         <div class="wizard-body">
             <div class="row g-4">
                 <c:if test="${level == 0}">
                     <div class="col-12"><h5 class="fw-bold text-primary border-bottom pb-2">기본 이관 설정</h5></div>
                     
-                    <c:set var="reg_type" value="${param.registration_type}" />
-                    <c:if test="${empty reg_type}"><c:set var="reg_type" value="${savedParam.registration_type}" /></c:if>
+                    <c:set var="reg_type" value="${registration_type}" />
                     <c:if test="${empty reg_type}"><c:set var="reg_type" value="BOTH" /></c:if>
 
                     <!-- Registration Type Selection -->
@@ -259,7 +260,7 @@
                 </c:if>
 
                 <c:if test="${level > 0}">
-                    <c:set var="reg_type" value="${param.registration_type}" />
+                    <c:set var="reg_type" value="${registration_type}" />
                     <c:if test="${empty reg_type}"><c:set var="reg_type" value="BOTH" /></c:if>
 
                     <c:if test="${reg_type ne 'SINK_ONLY'}">
@@ -385,64 +386,7 @@
                 </c:if>
             </div>
             
-            <c:if test="${level == 3}">
-                <!-- Connector Configuration Preview -->
-                <div class="mt-5">
-                    <h5 class="fw-bold text-dark border-bottom pb-2 mb-3"><i class="bi bi-code-square me-2"></i>Connector 설정 미리보기 (Kafka Connect API)</h5>
-                    <div class="card bg-dark text-light p-4 shadow-sm" style="font-family: 'Courier New', Courier, monospace; font-size: 0.85rem;">
-                        <c:set var="reg_type" value="${param.registration_type}" />
-                        <c:if test="${empty reg_type}"><c:set var="reg_type" value="${savedParam.registration_type}" /></c:if>
-                        
-                        <c:if test="${reg_type ne 'SINK_ONLY'}">
-                            <div class="mb-4">
-                                <div class="d-flex justify-content-between align-items-center mb-2">
-                                    <span class="text-success fw-bold">[ SOURCE CONNECTOR ]</span>
-                                    <button type="button" class="btn btn-outline-light btn-sm" onclick="copyToClipboard('sourceCurl')">Copy</button>
-                                </div>
-                                <pre id="sourceCurl" class="m-0 text-info" style="white-space: pre-wrap;">curl -X POST ${source_connector_url} -H "Content-Type: application/json" -d '{
-  "name": "jdbc_source_${mig_list_seq}_${migListInfo.mig_name}",
-  "config": {
-    "connector.class": "${source_connector}",
-    <c:forEach items="${sourcePreviewParams}" var="item" varStatus="vs">
-    <c:set var="preKey" value="SOURCE__${item.param_key}" />
-    "${item.param_key}": "${savedParam[preKey] != null ? savedParam[preKey] : (param[preKey] != null ? param[preKey] : item.default_value)}"<c:if test="${!vs.last}">,</c:if>
-    </c:forEach>
-  }
-}'</pre>
-                            </div>
-                        </c:if>
-                        
-                        <c:if test="${reg_type ne 'SOURCE_ONLY'}">
-                            <div class="mb-0">
-                                <div class="d-flex justify-content-between align-items-center mb-2">
-                                    <span class="text-info fw-bold">[ SINK CONNECTOR ]</span>
-                                    <button type="button" class="btn btn-outline-light btn-sm" onclick="copyToClipboard('sinkCurl')">Copy</button>
-                                </div>
-                                <pre id="sinkCurl" class="m-0 text-warning" style="white-space: pre-wrap;">curl -X POST ${sink_connector_url} -H "Content-Type: application/json" -d '{
-  "name": "jdbc_sink_${mig_list_seq}_${migListInfo.mig_name}",
-  "config": {
-    "connector.class": "${sink_connector}",
-    <c:forEach items="${sinkPreviewParams}" var="item" varStatus="vs">
-    <c:set var="preKey" value="SINK__${item.param_key}" />
-    "${item.param_key}": "${savedParam[preKey] != null ? savedParam[preKey] : (param[preKey] != null ? param[preKey] : item.default_value)}"<c:if test="${!vs.last}">,</c:if>
-    </c:forEach>
-  }
-}'</pre>
-                            </div>
-                        </c:if>
-                    </div>
-                </div>
-                <script>
-                    function copyToClipboard(id) {
-                        var text = document.getElementById(id).innerText;
-                        navigator.clipboard.writeText(text).then(function() {
-                            alert("클립보드에 복사되었습니다.");
-                        }, function(err) {
-                            console.error('Could not copy text: ', err);
-                        });
-                    }
-                </script>
-            </c:if>
+            </div>
         </div>
 
         <div class="wizard-footer">
