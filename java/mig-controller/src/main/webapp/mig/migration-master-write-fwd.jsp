@@ -77,7 +77,7 @@
                     <label for="ordering" class="form-label">표시 순서</label>
                     <div class="input-group">
                         <span class="input-group-text bg-light"><i class="bi bi-sort-numeric-down"></i></span>
-                        <input type="number" class="form-control" id="ordering" name="ordering" value="${master.ordering}" placeholder="0">
+                        <input type="number" class="form-control" id="ordering" name="ordering" value="${master.ordering}" placeholder="0" step="10">
                     </div>
                 </div>
             </div>

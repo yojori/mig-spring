@@ -100,7 +100,7 @@
                 
                 <div class="col-md-4">
                     <label class="form-label">정렬 순서</label>
-                    <input type="number" class="form-control" name="ordering" value="${master.ordering}">
+                    <input type="number" class="form-control" name="ordering" value="${master.ordering}" step="10">
                 </div>
             </div>
         </div>

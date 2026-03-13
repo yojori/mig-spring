@@ -45,7 +45,11 @@ public class SpelMessageTransformer implements MessageTransformer {
         // }
         List<Map<String, Object>> mappings = (List<Map<String, Object>>) mappingRules.get("mappings");
 
-        if (mappings != null) {
+        if (mappings == null || mappings.isEmpty()) {
+            // Default 1:1 Mapping logic: If no rules are defined, move everything as-is.
+            targetPayload.putAll(sourcePayload);
+        } else {
+            // Transformation logic: Only move and transform fields specified in the rules.
             for (Map<String, Object> rule : mappings) {
                 String targetField = (String) rule.get("target");
 
@@ -61,7 +65,7 @@ public class SpelMessageTransformer implements MessageTransformer {
                     Object value = sourcePayload.get(sourceField);
                     targetPayload.put(targetField, value);
                 } else if (rule.containsKey("default")) {
-                   // Default constant value if neither source nor expression is provided
+                    // Default constant value if neither source nor expression is provided
                     targetPayload.put(targetField, rule.get("default"));
                 }
             }

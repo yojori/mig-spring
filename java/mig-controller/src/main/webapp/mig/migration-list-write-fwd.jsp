@@ -42,9 +42,10 @@
         var currentStep = 1;
 
         function goStep(step) {
+            console.log('Moving to step:', step);
             if (step < 1 || step > 3) return;
             
-            // Validation before moving to step 2/3
+            // Validation before moving forward
             if (step > currentStep) {
                 if (currentStep == 1) {
                     if (!$("input[name='mig_name']").val()) { alert("작업명을 입력해 주세요."); return; }
@@ -63,7 +64,6 @@
             
             currentStep = step;
             
-            // Toggle buttons
             $("#btn-prev").toggle(step > 1);
             $("#btn-next").toggle(step < 3);
             $("#btn-save").toggle(step == 3);
@@ -71,14 +71,10 @@
 
         function changeMigType() {
             var type = $("#mig_type").val();
+            console.log('Migration type changed:', type);
             
-            // Reset disabled states for shared properties
-            $("#hidden_target_table").prop("disabled", false);
-            $("#hidden_source_pk").prop("disabled", false);
-            $("#insert_type_table").prop("disabled", false);
-            
-            $("#nt_target_table").prop("disabled", true);
-            $("#nt_insert_type").prop("disabled", true);
+            $("#hidden_target_table, #hidden_source_pk, #insert_type_table").prop("disabled", false);
+            $("#nt_target_table, #nt_insert_type, #nt_truncate_yn").prop("disabled", true);
 
             if (type == "TABLE" || type == "DDL") {
                 $("#table_settings_area").show();
@@ -86,128 +82,71 @@
                 
                 if (type == "TABLE") {
                     $("#strategy_area").show();
+                    $("#truncate_label").text("기존 데이터 삭제 (TRUNCATE) 여부");
+                    $("#insert_type_table_container").show();
                 } else {
                     $("#strategy_area").hide();
-                    $("select[name='target_strategy']").val(""); // Reset to default when hidden
-                }
-                
-                // DDL일 경우 Insert Type 감추기
-                if (type == "DDL") {
-                    $("#insert_type_table_container").hide();
-                } else {
-                    $("#insert_type_table_container").show();
-                }
-                if (type == "DDL") {
                     $("#truncate_label").text("기존 테이블 삭제 (DROP) 여부");
-                    $("#sql_label").text("SQL 문장 또는 대상 테이블명");
-                    $("#single_sql_area").show();
-                    
-                    // Disable bulk areas for DDL single edit
-                    $("textarea[name='source_pk_area']").prop("disabled", true).addClass("bg-light");
-                    $("textarea[name='target_table_area']").prop("disabled", false).removeClass("bg-light");
-                } else if (type == "TABLE") {
-                    $("#truncate_label").text("기존 데이터 삭제 (TRUNCATE) 여부");
-                    $("#sql_label").text("대상 테이블명");
-                    $("#single_sql_area").hide(); // Use individual fields for TABLE
-                    
-                    // Disable PK for TABLE (Source metadata is used)
-                    $("textarea[name='source_pk_area']").prop("disabled", true).addClass("bg-light");
-                    $("textarea[name='target_table_area']").prop("disabled", false).removeClass("bg-light");
-                } else {
-                    $("#truncate_label").text("기존 데이터 삭제 (TRUNCATE) 여부");
-                    $("#sql_label").text("SQL 문장 또는 대상 테이블명");
-                    $("#single_sql_area").show();
-                    
-                    $("textarea[name='source_pk_area']").prop("disabled", false).removeClass("bg-light");
-                    $("textarea[name='target_table_area']").prop("disabled", false).removeClass("bg-light");
+                    $("#insert_type_table_container").hide();
                 }
-
-                if (type == "NORMAL" || type == "TABLE" || type == "DDL") {
-                    $("#thread_options_area").hide();
-                } else {
-                    $("#thread_options_area").show();
-                }
+                
+                $("#single_sql_area").toggle(type == "DDL");
+                $("textarea[name='source_pk_area']").prop("disabled", true).addClass("bg-light");
+                $("textarea[name='target_table_area']").prop("disabled", false).removeClass("bg-light");
             } else {
-                $("#table_settings_area").hide();
-                $("#strategy_area").hide();
-                $("select[name='target_strategy']").val("");
-                $("#sql_label").text("SQL Sentence");
+                $("#table_settings_area, #strategy_area").hide();
+                $("#sql_label").text(type == "KAFKA" ? "대상 테이블 또는 변환 규칙 (JSON)" : "SQL Sentence");
+                $("#single_sql_area").show();
                 
-                if (type == "NORMAL" || type == "KAFKA") {
-                    $("#thread_options_area").hide();
-                    
-                    if (type == "KAFKA") {
-                        $("#sql_label").html("<i class='bi bi-funnel text-primary me-1'></i>변환 규칙 (JSON Mapping Rules)");
-                        $("textarea[name='sql_string']").attr("placeholder", "Kafka 실시간 이관을 위한 JSON 형태의 변환 규칙(KFK_MAPPING)을 입력하세요.\n예시:\n{\n  \"mappings\": [\n    { \"target\": \"id\", \"source\": \"USER_ID\" }\n  ]\n}");
-                    } else {
-                        $("textarea[name='sql_string']").attr("placeholder", "SELECT * FROM [테이블명] 또는 이관 대상 물리명 하나를 입력하세요.");
-                    }
-                } else {
-                    $("#thread_options_area").show();
-                    $("textarea[name='sql_string']").attr("placeholder", "SELECT * FROM [테이블명] 또는 이관 대상 물리명 하나를 입력하세요.");
+                var placeholder = "SELECT * FROM [테이블명] 또는 이관 대상 물리명 하나를 입력하세요.";
+                if (type == "KAFKA") {
+                    placeholder = "기본 1:1 이관 시 비워두셔도 됩니다.\n\n특정 컬럼만 변환하거나 제외하려면 JSON 매핑 규칙을 입력하세요.";
                 }
-            }
-            
-            // 下단부 공통 파라미터 (Target Table, Insert Type, Truncate) 영역 제어
-            if (type == "NORMAL" || type == "THREAD" || type == "THREAD_IDX" || type == "DDL" || type == "KAFKA") {
-                $("#normal_thread_settings").show();
+                $("textarea[name='sql_string']").attr("placeholder", placeholder);
                 
-                // 공통 활성화
+                $("textarea[name='source_pk_area'], textarea[name='target_table_area']").prop("disabled", false).removeClass("bg-light");
+            }
+
+            if (["NORMAL", "THREAD", "THREAD_IDX", "DDL", "KAFKA"].includes(type)) {
+                $("#normal_thread_settings").show();
                 $("#nt_target_table").prop("disabled", false);
+                $("#hidden_target_table").prop("disabled", true);
                 
                 if (type == "DDL") {
                     $("#nt_insert_type_container").hide();
                     $("#nt_insert_type").prop("disabled", true);
-                    
                     $("#nt_truncate_container").show();
                     $("#nt_truncate_yn").prop("disabled", false);
-                    
-                    $("#truncate_table_container").hide();
-                    $("#truncate_yn_table").prop("disabled", true);
                 } else {
                     $("#nt_insert_type_container").show();
                     $("#nt_insert_type").prop("disabled", false);
-                    
                     $("#nt_truncate_container").hide();
                     $("#nt_truncate_yn").prop("disabled", true);
-                    
-                    // TABLE 타입 등은 상단 truncate 노출 
-                    $("#truncate_table_container").show();
-                    $("#truncate_yn_table").prop("disabled", false);
-                }
-                
-                // Disable hidden fields
-                $("#hidden_target_table").prop("disabled", true);
-                if (type != "DDL") {
-                    $("#insert_type_table").prop("disabled", true);
                 }
             } else {
                 $("#normal_thread_settings").hide();
-                $("#truncate_table_container").show();
-                $("#truncate_yn_table").prop("disabled", false);
             }
+            
+            $("#thread_options_area").toggle(!["NORMAL", "TABLE", "DDL", "KAFKA"].includes(type));
         }
 
         function setBulkMode(isBulk) {
-            if (isBulk) {
-                $("#single_sql_area").hide();
-                $("#bulk_table_area").show();
-                $("#bulk_flag").val("Y");
-            } else {
-                $("#single_sql_area").show();
-                $("#bulk_table_area").hide();
-                $("#bulk_flag").val("N");
-            }
+            $("#single_sql_area").toggle(!isBulk);
+            $("#bulk_table_area").toggle(isBulk);
+            $("#bulk_flag").val(isBulk ? "Y" : "N");
+        }
+
+        function doSave() {
+            console.log('doSave called');
+            alert('이관 설정을 저장합니다.');
+            $("#form1").submit();
         }
 
         $(document).ready(function() {
-            var type = $("#mig_type").val();
             var mode = "${master.mode}";
-            
             changeMigType();
             
-            // Initial view setup: Insert + (Table/DDL) = Bulk area
-            if (mode == "insert" && (type == "TABLE" || type == "DDL")) {
+            if (mode == "insert" && ["TABLE", "DDL"].includes($("#mig_type").val())) {
                 setBulkMode(true);
             } else {
                 setBulkMode(false);
@@ -215,34 +154,29 @@
             
             $("#mig_type").change(function() {
                 changeMigType();
-                // Switch input area depending on type for NEW registrations
-                if (mode == "insert" && ($(this).val() == "TABLE" || $(this).val() == "DDL")) {
+                if (mode == "insert" && ["TABLE", "DDL"].includes($(this).val())) {
                     setBulkMode(true);
                 } else {
                     setBulkMode(false);
                 }
+                if (["THREAD", "THREAD_IDX"].includes($(this).val())) {
+                    $("select[name='thread_use_yn']").val("Y");
+                }
+            });
 
-            // 쓰레드 타입일 경우 멀티 쓰레드 사용 기본 Y
-            if ($(this).val() == "THREAD" || $(this).val() == "THREAD_IDX") {
-                $("select[name='thread_use_yn']").val("Y");
-            }
+            var displayYn = "${master.display_yn}";
+            $("#display_yn_switch").prop("checked", displayYn != "N");
+            $("input[name='display_yn']").val(displayYn == "N" ? "N" : "Y");
+
+            $("#display_yn_switch").change(function() {
+                $("input[name='display_yn']").val($(this).is(":checked") ? "Y" : "N");
+            });
+
+            $("#form1").submit(function() {
+                console.log("Form is being submitted...");
+                return true;
+            });
         });
-
-        // Initialize display switch state
-        var displayYn = "${master.display_yn}";
-        if (displayYn == "N") {
-            $("#display_yn_switch").prop("checked", false);
-            $("input[name='display_yn']").val("N");
-        } else {
-            $("#display_yn_switch").prop("checked", true);
-            $("input[name='display_yn']").val("Y");
-        }
-
-        // Toggle display_yn hidden value when switch changes
-        $("#display_yn_switch").change(function() {
-            $("input[name='display_yn']").val($(this).is(":checked") ? "Y" : "N");
-        });
-    });
     </script>
 </head>
 <body class="p-4">
@@ -411,17 +345,17 @@
                                         </div>
                                         <div class="col-md-4">
                                             <label class="form-label">스레드 수</label>
-                                            <input type="number" name="thread_count" class="form-control" value="${master.thread_count}" min="1" max="100">
+                                            <input type="number" name="thread_count" class="form-control" value="${master.thread_count}" min="1" max="100" step="5">
                                         </div>
                                         <div class="col-md-4">
                                             <label class="form-label">페이지당 건수</label>
-                                            <input type="number" name="page_count_per_thread" class="form-control" value="${master.page_count_per_thread}">
+                                            <input type="number" name="page_count_per_thread" class="form-control" value="${master.page_count_per_thread}" step="5000">
                                         </div>
                                     </div>
 
                                     <div class="col-md-6 border-top pt-3">
                                         <label class="form-label">정렬 순서</label>
-                                        <input type="number" name="ordering" class="form-control" value="${master.ordering}">
+                                        <input type="number" name="ordering" class="form-control" value="${master.ordering}" step="10">
                                     </div>
                                     <div class="col-md-6 border-top pt-3">
                                         <label class="form-label">배치 실행 여부</label>
@@ -449,7 +383,7 @@
                                 <button type="button" id="btn-next" class="btn btn-primary btn-lg px-5 shadow" onclick="goStep(currentStep+1);">
                                     다음 단계<i class="bi bi-chevron-right ms-2"></i>
                                 </button>
-                                <button type="submit" id="btn-save" class="btn btn-primary btn-lg px-5 shadow" style="display:none;">
+                                <button type="button" id="btn-save" class="btn btn-primary btn-lg px-5 shadow" style="display:none;" onclick="doSave();">
                                     <i class="bi bi-check-lg me-2"></i>최종 저장
                                 </button>
                             </div>
