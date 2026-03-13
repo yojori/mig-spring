@@ -76,6 +76,15 @@
         <code-0009><!-- display YN -->
 			<option value="Y">표시</option>
 			<option value="N">안함</option>
-        </code-0009>                         
+        </code-0009>
+        <KFK-0030><!-- broker 관리 -->
+            <option value="BK-001" ec1="kafka.emro.co.kr:9021">이관용 Kafka</option>
+        </KFK-0030>
+        <KFK-0041><!-- Source Connector -->
+            <option value="io.confluent.connect.jdbc.JdbcSourceConnector" ec1="http://localhost:8083/connectors">JDBC Source Connector</option>
+        </KFK-0041>
+        <KFK-0042><!-- Sink Connector -->
+            <option value="io.confluent.connect.jdbc.JdbcSinkConnector" ec1="http://localhost:8083/connectors">JDBC Sink Connector</option>
+        </KFK-0042>
 	</code>
 </pageCode>

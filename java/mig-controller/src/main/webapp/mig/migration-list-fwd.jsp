@@ -55,6 +55,10 @@
         function goPopupTable(mig_list_seq) {
             popup_window("/mig/insert-table-write.jsp?mig_list_seq=" + mig_list_seq, "insertTable", "left=150, top=150, width=1200, height=800, scrollbars=yes");
         }
+        function goKafkaConfig(mig_master, mig_list_seq) {
+            // Kafka specific mapping/template configuration
+            popup_window("/mig/kfk-mig-wizard.jsp?mig_master=" + mig_master + "&mig_list_seq=" + mig_list_seq + "&level=0", "kafkaConfig", "left=150, top=150, width=1200, height=800, scrollbars=yes");
+        }
         function goExecute(master_code, mig_list_seq, mig_name) {
             popup_window("/mig/migration-proc.jsp?mig_master=" + master_code + "&mig_list_seq=" + mig_list_seq + "&mig_name=" + encodeURI(mig_name), "downgrade111", "left=150, top=150, width=1200, height=800, scrollbars=yes");
         }
@@ -91,6 +95,7 @@
                 <li class="nav-item"><a class="nav-link" href="./migration-work-list.jsp">이관 진행 현황</a></li>
                 <li class="nav-item"><a class="nav-link" href="./db-con-list.jsp">DB Connection 관리</a></li>
                 <li class="nav-item"><a class="nav-link" href="./type-mapping-list.jsp">DB Type 관리</a></li>
+                <li class="nav-item"><a class="nav-link" href="./kfk-param-template-list.jsp"><i class="bi bi-gear-fill me-1"></i>Kafka Param Template 관리</a></li>
             </ul>
         </div>
     </div>
@@ -164,11 +169,11 @@
                                     <a href="javascript:goPopup('${list.mig_master}','${list.mig_list_seq}');" class="text-decoration-none text-dark">${list.mig_list_seq}</a>
                                 </td>
                                 <td>
-                                    <c:if test="${list.mig_type=='NORMAL' || list.mig_type=='THREAD' || list.mig_type=='THREAD_IDX' || list.mig_type=='THREAD_MULTI' || list.mig_type=='KAFKA'}">
+                                    <c:if test="${list.mig_type=='NORMAL' || list.mig_type=='THREAD' || list.mig_type=='THREAD_IDX' || list.mig_type=='THREAD_MULTI'}">
                                         <a href="javascript:goPopupSelect('${list.mig_list_seq}');" class="fw-bold text-primary text-decoration-none">
                                     </c:if>
                                     ${list.mig_name}
-                                    <c:if test="${list.mig_type=='NORMAL' || list.mig_type=='THREAD' || list.mig_type=='THREAD_IDX' || list.mig_type=='THREAD_MULTI' || list.mig_type=='KAFKA'}"></a></c:if>
+                                    <c:if test="${list.mig_type=='NORMAL' || list.mig_type=='THREAD' || list.mig_type=='THREAD_IDX' || list.mig_type=='THREAD_MULTI'}"></a></c:if>
                                 </td>
                                 <td class="text-center small">
                                     <span class="fw-bold">${list.source_db_name}</span><br>
@@ -189,10 +194,13 @@
                                             </div>
                                         </c:if>
                                         <div class="btn-group btn-group-sm">
-                                            <c:if test="${list.mig_type=='NORMAL' || list.mig_type=='THREAD' || list.mig_type=='THREAD_IDX' || list.mig_type=='THREAD_MULTI' || list.mig_type=='KAFKA'}">
+                                            <c:if test="${list.mig_type=='NORMAL' || list.mig_type=='THREAD' || list.mig_type=='THREAD_IDX' || list.mig_type=='THREAD_MULTI'}">
                                                 <a href="javascript:goPopupSelect('${list.mig_list_seq}');" class="btn btn-outline-primary btn-sm" title="Columns"><i class="bi bi-card-checklist"></i></a>
                                                 <a href="javascript:goPopupInsert('${list.mig_list_seq}');" class="btn btn-outline-secondary btn-sm" title="Insert SQL"><i class="bi bi-file-earmark-code"></i></a>
                                                 <a href="javascript:goPopupRelation('${list.mig_list_seq}');" class="btn btn-outline-secondary btn-sm" title="Mapping"><i class="bi bi-diagram-3"></i></a>
+                                            </c:if>
+                                            <c:if test="${list.mig_type=='KAFKA'}">
+                                                <a href="javascript:goKafkaConfig('${list.mig_master}', '${list.mig_list_seq}');" class="btn btn-outline-warning btn-sm" title="Kafka Settings"><i class="bi bi-strava"></i></a>
                                             </c:if>
                                             <c:if test="${list.mig_type=='TABLE'}">
                                                 <a href="javascript:goPopupTable('${list.mig_list_seq}');" class="btn btn-outline-info btn-sm" title="Table Detail"><i class="bi bi-table"></i></a>

@@ -1,27 +1,27 @@
 <%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8" %>
-<%@ page import="c.y.mig.util.*" %>
 <%@ page import="c.y.mig.manager.*" %>
 <%@ page import="c.y.mig.model.*" %>
+<%@ page import="c.y.mig.util.*" %>
 <%@ page import="java.util.*" %>
 <%@include file="/mig/session-admin-check.jsp" %>
 <%
     String mode = StringUtil.nvl(request.getParameter("mode"), "insert");
-    String template_id = request.getParameter("template_id");
+    String id = request.getParameter("id");
 
-    KfkTemplate master = new KfkTemplate();
+    KfkParamTemplate master = new KfkParamTemplate();
     master.setMode(mode);
 
-    if ("update".equals(mode) && !StringUtil.empty(template_id)) {
-        KfkTemplateManager manager = new KfkTemplateManager();
-        master = manager.find(template_id);
+    if ("update".equals(mode) && !StringUtil.empty(id)) {
+        KfkParamTemplateManager manager = new KfkParamTemplateManager();
+        master = manager.find(id);
         if (master != null) {
             master.setMode(mode);
         } else {
-            master = new KfkTemplate();
+            master = new KfkParamTemplate();
             master.setMode("insert");
         }
     }
 
     request.setAttribute("master", master);
-    request.getRequestDispatcher("./kfk-template-write-fwd.jsp").forward(request, response);
+    request.getRequestDispatcher("./kfk-param-template-write-fwd.jsp").forward(request, response);
 %>

@@ -30,10 +30,6 @@ public class CodeTag extends TagSupport {
         this.selected = selected;
     }
 
-    private String defaultSelect;
-    private String script;
-    private String style;
-    private String required;
     private String onchange;
     private String styleClass; // e.g. "form-select"
 
@@ -63,7 +59,16 @@ public class CodeTag extends TagSupport {
                 String val = opt.get("value");
                 String txt = opt.get("text");
                 String sel = (val.equals(selected)) ? "selected" : "";
-                sb.append("<option value=\"" + val + "\" " + sel + ">" + txt + "</option>");
+                
+                StringBuilder extraAttrs = new StringBuilder();
+                for (int i = 1; i <= 4; i++) {
+                    String ec = opt.get("ec" + i);
+                    if (ec != null) {
+                        extraAttrs.append(" data-ec" + i + "=\"" + ec + "\"");
+                    }
+                }
+                
+                sb.append("<option value=\"" + val + "\" " + sel + extraAttrs.toString() + ">" + txt + "</option>");
             }
             sb.append("</select>");
 

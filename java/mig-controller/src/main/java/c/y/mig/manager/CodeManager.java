@@ -79,6 +79,13 @@ public class CodeManager {
                         Map<String, String> optMap = new HashMap<>();
                         optMap.put("value", optElement.getAttribute("value"));
                         optMap.put("text", optElement.getTextContent());
+                        
+                        // Extra attributes for Kafka/DB info
+                        if (optElement.hasAttribute("ec1")) optMap.put("ec1", optElement.getAttribute("ec1"));
+                        if (optElement.hasAttribute("ec2")) optMap.put("ec2", optElement.getAttribute("ec2"));
+                        if (optElement.hasAttribute("ec3")) optMap.put("ec3", optElement.getAttribute("ec3"));
+                        if (optElement.hasAttribute("ec4")) optMap.put("ec4", optElement.getAttribute("ec4"));
+                        
                         options.add(optMap);
                     }
                 }

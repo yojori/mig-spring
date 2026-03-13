@@ -138,7 +138,6 @@
 
         function doSave() {
             console.log('doSave called');
-            alert('이관 설정을 저장합니다.');
             $("#form1").submit();
         }
 

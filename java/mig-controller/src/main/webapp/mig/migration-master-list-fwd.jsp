@@ -41,6 +41,7 @@
                 <li class="nav-item"><a class="nav-link" href="./migration-work-list.jsp">이관 진행 현황</a></li>
                 <li class="nav-item"><a class="nav-link" href="./db-con-list.jsp">DB Connection 관리</a></li>
                 <li class="nav-item"><a class="nav-link" href="./type-mapping-list.jsp">DB Type 관리</a></li>
+                <li class="nav-item"><a class="nav-link" href="./kfk-param-template-list.jsp"><i class="bi bi-gear-fill me-1"></i>Kafka Param Template 관리</a></li>
             </ul>
         </div>
     </div>
