@@ -9,7 +9,20 @@
     String mig_list_seq = request.getParameter("mig_list_seq");
     String registration_type = request.getParameter("registration_type");
     String source_connector = request.getParameter("source_connector");
+    if (source_connector == null || source_connector.isEmpty()) {
+        source_connector = request.getParameter("SOURCE__source_connector");
+    }
+    if (source_connector == null || source_connector.isEmpty()) {
+        source_connector = request.getParameter("COMMON__source_connector");
+    }
+    
     String sink_connector = request.getParameter("sink_connector");
+    if (sink_connector == null || sink_connector.isEmpty()) {
+        sink_connector = request.getParameter("SINK__sink_connector");
+    }
+    if (sink_connector == null || sink_connector.isEmpty()) {
+        sink_connector = request.getParameter("COMMON__sink_connector");
+    }
     
     // Get MigrationList info
     MigrationListManager migListManager = new MigrationListManager();
@@ -36,7 +49,11 @@
     list.setUse_yn("Y");
 
     KfkMigListManager kfkListManager = new KfkMigListManager();
-    kfkListManager.insert(list);
+    if (kfkListManager.getRecord(mig_list_seq) != null) {
+        kfkListManager.update(list);
+    } else {
+        kfkListManager.insert(list);
+    }
     
     // Clean up existing parameters for this list before re-saving
     kfkListManager.deleteParams(mig_list_seq);
@@ -46,12 +63,12 @@
     Map<String, String> keyToTypeMap = new HashMap<String, String>();
     Map<String, KfkParamTemplate> tplMap = new HashMap<String, KfkParamTemplate>();
     
-    KfkMigList migListInfo = kfkListManager.getRecord(mig_list_seq);
+    KfkMigList kfkMigListInfo = kfkListManager.getRecord(mig_list_seq);
     if (source_connector == null || source_connector.isEmpty()) {
-        source_connector = (migListInfo != null) ? migListInfo.getSource_connector() : "";
+        source_connector = (kfkMigListInfo != null) ? kfkMigListInfo.getSource_connector() : "";
     }
     if (sink_connector == null || sink_connector.isEmpty()) {
-        sink_connector = (migListInfo != null) ? migListInfo.getSink_connector() : "";
+        sink_connector = (kfkMigListInfo != null) ? kfkMigListInfo.getSink_connector() : "";
     }
 
     // Level 0 params
@@ -75,7 +92,7 @@
     Enumeration<String> paramNames = request.getParameterNames();
     while (paramNames.hasMoreElements()) {
         String fullKey = paramNames.nextElement();
-        if ("mig_master".equals(fullKey) || "mig_name".equals(fullKey) || "level".equals(fullKey) || "mig_list_seq".equals(fullKey) || "registration_type".equals(fullKey)) {
+        if ("mig_master".equals(fullKey) || "mig_name".equals(fullKey) || "level".equals(fullKey) || "mig_list_seq".equals(fullKey) || "registration_type".equals(fullKey) || "sourceDb".equals(fullKey) || "targetDb".equals(fullKey)) {
             continue;
         }
         
@@ -95,14 +112,29 @@
                 realKey = fullKey.substring(8);
             }
             
-            // Try specific connector template first
-            String connector = "SOURCE".equals(cType) ? source_connector : ("SINK".equals(cType) ? sink_connector : null);
-            String cacheKey = (connector != null ? connector : "COMMON") + ":" + realKey;
-            KfkParamTemplate tpl = tplMap.get(cacheKey);
+            // 1. Try specific connector template first (for Level 1+)
+            String connectorClass = "SOURCE".equals(cType) ? source_connector : ("SINK".equals(cType) ? sink_connector : "COMMON");
+            KfkParamTemplate tpl = null;
             
-            // Fallback to searching by key if not found with specific connector
+            if (!"COMMON".equals(connectorClass)) {
+                // Fetch directly instead of using map to ensure we get the exact row
+                List<KfkParamTemplate> specificList = tm.getList(-1, connectorClass); // Assuming we can iterate, but let's just use the existing map properly for now
+                for(KfkParamTemplate temp : tm.getAllLevelsList(connectorClass)) {
+                    if(realKey.equals(temp.getParam_key())) {
+                        tpl = temp;
+                        break;
+                    }
+                }
+            }
+            
+            // 2. Fallback: Check if it exists in COMMON (Level 0 or unassigned class)
             if (tpl == null) {
-                tpl = tplMap.get("COMMON:" + realKey);
+                for(KfkParamTemplate temp : tm.getList(0, null)) {
+                    if(realKey.equals(temp.getParam_key())) {
+                        tpl = temp;
+                        break;
+                    }
+                }
             }
             
             int dpLevel = (tpl != null) ? tpl.getDp_level() : 0;

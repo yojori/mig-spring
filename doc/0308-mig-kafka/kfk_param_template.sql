@@ -39,11 +39,15 @@ CREATE TABLE KFK_MIG_LIST (
 );
 
 CREATE TABLE KFK_MIG_PARAM (
+    seq INT AUTO_INCREMENT,
     mig_list_seq VARCHAR(50) NOT NULL,
     connector_type VARCHAR(10) NOT NULL, -- SOURCE, SINK, COMMON
     param_key VARCHAR(100) NOT NULL,
     param_value TEXT,
     dp_level INT,
     dp_order INT,
-    PRIMARY KEY (mig_list_seq, connector_type, param_key)
+    create_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    update_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (seq),
+    UNIQUE KEY UK_KFK_MIG_PARAM (mig_list_seq, connector_type, param_key)
 );

@@ -1,16 +1,17 @@
 package c.y.mig.manager;
 
-import c.y.mig.db.DBManager;
-import c.y.mig.db.query.Insert;
-import c.y.mig.model.KfkMigParam;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.List;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import c.y.mig.db.DBManager;
+import c.y.mig.db.query.Insert;
+import c.y.mig.model.KfkMigParam;
 
 public class KfkMigParamManager extends Manager {
 
@@ -66,12 +67,15 @@ public class KfkMigParamManager extends Manager {
 
             while (rs.next()) {
                 KfkMigParam entity = new KfkMigParam();
+                entity.setParam_seq(rs.getInt("seq"));
                 entity.setMig_list_seq(rs.getString("mig_list_seq"));
                 entity.setConnector_type(rs.getString("connector_type"));
                 entity.setParam_key(rs.getString("param_key"));
                 entity.setParam_value(rs.getString("param_value"));
                 entity.setDp_level(rs.getInt("dp_level"));
                 entity.setDp_order(rs.getInt("dp_order"));
+                entity.setCreate_date(rs.getTimestamp("create_date"));
+                entity.setUpdate_date(rs.getTimestamp("update_date"));
                 list.add(entity);
             }
         } catch (SQLException e) {

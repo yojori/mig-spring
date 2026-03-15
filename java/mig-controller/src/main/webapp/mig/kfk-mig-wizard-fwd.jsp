@@ -149,7 +149,9 @@
     <form name="frmWizard" method="post" action="kfk-mig-wizard.jsp">
         <input type="hidden" name="mig_master" value="${mig_master}">
         <input type="hidden" name="mig_list_seq" value="${mig_list_seq}">
-        <input type="hidden" name="registration_type" value="${registration_type}">
+        <c:if test="${level > 0}">
+            <input type="hidden" name="registration_type" value="${registration_type}">
+        </c:if>
         <input type="hidden" name="source_connector" value="${source_connector}">
         <input type="hidden" name="sink_connector" value="${sink_connector}">
         <input type="hidden" name="sourceDb" value="${sourceDb}">

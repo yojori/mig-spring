@@ -1,15 +1,15 @@
 package c.y.mig.manager;
 
-import c.y.mig.db.DBManager;
-import c.y.mig.db.query.Insert;
-import c.y.mig.model.KfkMigList;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
-import java.sql.SQLException;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import c.y.mig.db.DBManager;
+import c.y.mig.db.query.Insert;
+import c.y.mig.model.KfkMigList;
 
 public class KfkMigListManager extends Manager {
 
@@ -38,12 +38,85 @@ public class KfkMigListManager extends Manager {
             setParameter(sql, stmt);
             rtn = stmt.executeUpdate();
 
-        } catch (SQLException e) {
-            log.error(e.toString(), e);
         } catch (Exception e) {
             log.error(e.toString(), e);
         } finally {
             DBManager.close(rs, stmt, con);
+        }
+        return rtn;
+    }
+
+    public java.util.List<KfkMigList> getList(String migMaster) {
+        java.util.List<KfkMigList> list = new java.util.ArrayList<>();
+        Connection con = null;
+        PreparedStatement stmt = null;
+        ResultSet rs = null;
+
+        try {
+            con = DBManager.getConnection();
+            c.y.mig.db.query.Select sql = new c.y.mig.db.query.Select();
+            sql.addField("T1.*");
+            sql.addField("T2.SOURCE_DB_ALIAS");
+            sql.addField("T2.TARGET_DB_ALIAS");
+            sql.addFrom(KFK_MIG_LIST + " T1");
+            sql.addInnerJoin(MIGRATION_LIST + " T2", "T1.mig_list_seq = T2.mig_list_seq");
+            
+            if (migMaster != null && !migMaster.isEmpty()) {
+                sql.addWhere("T1.mig_master = ?", migMaster);
+            }
+            sql.addOrder("T1.create_date DESC");
+
+            stmt = con.prepareStatement(sql.toQuery());
+            setParameter(sql, stmt);
+            rs = stmt.executeQuery();
+
+            while (rs.next()) {
+                KfkMigList entity = new KfkMigList();
+                entity.setMig_list_seq(rs.getString("mig_list_seq"));
+                entity.setMig_master(rs.getString("mig_master"));
+                entity.setMig_name(rs.getString("mig_name"));
+                entity.setRegistration_type(rs.getString("registration_type"));
+                entity.setSource_connector(rs.getString("source_connector"));
+                entity.setSink_connector(rs.getString("sink_connector"));
+                entity.setUse_yn(rs.getString("use_yn"));
+                entity.setSource_db_alias(rs.getString("SOURCE_DB_ALIAS"));
+                entity.setTarget_db_alias(rs.getString("TARGET_DB_ALIAS"));
+                entity.setCreate_date(rs.getTimestamp("create_date"));
+                entity.setUpdate_date(rs.getTimestamp("update_date"));
+                list.add(entity);
+            }
+        } catch (Exception e) {
+            log.error(e.toString(), e);
+        } finally {
+            DBManager.close(rs, stmt, con);
+        }
+        return list;
+    }
+
+    public int update(KfkMigList master) {
+        int rtn = 0;
+        Connection con = null;
+        PreparedStatement stmt = null;
+
+        try {
+            c.y.mig.db.query.Update sql = new c.y.mig.db.query.Update();
+            sql.addField("mig_name", master.getMig_name());
+            sql.addField("registration_type", master.getRegistration_type());
+            sql.addField("source_connector", master.getSource_connector());
+            sql.addField("sink_connector", master.getSink_connector());
+            sql.addField("use_yn", master.getUse_yn());
+            sql.addFrom(KFK_MIG_LIST);
+            sql.addWhere("mig_list_seq = ?", master.getMig_list_seq());
+
+            con = DBManager.getConnection();
+            stmt = con.prepareStatement(sql.toQuery());
+            setParameter(sql, stmt);
+            rtn = stmt.executeUpdate();
+
+        } catch (Exception e) {
+            log.error(e.toString(), e);
+        } finally {
+            DBManager.close(null, stmt, con);
         }
         return rtn;
     }
@@ -102,7 +175,10 @@ public class KfkMigListManager extends Manager {
         PreparedStatement stmt = null;
         ResultSet rs = null;
         try {
-            String sql = "SELECT * FROM KFK_MIG_LIST WHERE mig_list_seq = ?";
+            String sql = "SELECT T1.*, T2.SOURCE_DB_ALIAS, T2.TARGET_DB_ALIAS " +
+                         "FROM KFK_MIG_LIST T1 " +
+                         "JOIN " + MIGRATION_LIST + " T2 ON T1.mig_list_seq = T2.mig_list_seq " +
+                         "WHERE T1.mig_list_seq = ?";
             con = DBManager.getConnection();
             stmt = con.prepareStatement(sql);
             stmt.setString(1, migListSeq);
@@ -116,6 +192,10 @@ public class KfkMigListManager extends Manager {
                 entity.setSource_connector(rs.getString("source_connector"));
                 entity.setSink_connector(rs.getString("sink_connector"));
                 entity.setUse_yn(rs.getString("use_yn"));
+                entity.setSource_db_alias(rs.getString("SOURCE_DB_ALIAS"));
+                entity.setTarget_db_alias(rs.getString("TARGET_DB_ALIAS"));
+                entity.setCreate_date(rs.getTimestamp("create_date"));
+                entity.setUpdate_date(rs.getTimestamp("update_date"));
             }
         } catch (Exception e) {
             log.error(e.toString(), e);

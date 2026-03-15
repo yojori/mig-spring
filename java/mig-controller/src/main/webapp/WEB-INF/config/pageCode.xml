@@ -86,5 +86,8 @@
         <KFK-0042><!-- Sink Connector -->
             <option value="io.confluent.connect.jdbc.JdbcSinkConnector" ec1="http://localhost:8083/connectors">JDBC Sink Connector</option>
         </KFK-0042>
+        <KFK_CONNECT_ENDPOINT><!-- Kafka Connect REST API Endpoint -->
+            <option value="http://localhost:8083">Local Connect Cluster</option>
+        </KFK_CONNECT_ENDPOINT>
 	</code>
 </pageCode>

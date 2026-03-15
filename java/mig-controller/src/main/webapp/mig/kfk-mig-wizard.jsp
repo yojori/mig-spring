@@ -19,7 +19,13 @@
     }
 
     String source_connector = request.getParameter("source_connector"); 
+    if (source_connector == null || source_connector.isEmpty()) {
+        source_connector = request.getParameter("COMMON__source_connector");
+    }
     String sink_connector = request.getParameter("sink_connector"); 
+    if (sink_connector == null || sink_connector.isEmpty()) {
+        sink_connector = request.getParameter("COMMON__sink_connector");
+    }
 
     KfkParamTemplateManager manager = new KfkParamTemplateManager();
     List<KfkParamTemplate> params = new ArrayList<KfkParamTemplate>();
@@ -97,6 +103,9 @@
             }
             if (sink_connector == null || sink_connector.isEmpty()) {
                 sink_connector = existingRecord.getSink_connector();
+            }
+            if (request.getParameter("registration_type") == null || request.getParameter("registration_type").isEmpty()) {
+                registration_type = existingRecord.getRegistration_type() != null ? existingRecord.getRegistration_type() : "BOTH";
             }
         }
     }

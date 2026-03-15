@@ -10,6 +10,8 @@ public class KfkMigList extends Search {
     private String source_connector;
     private String sink_connector;
     private String use_yn;
+    private String source_db_alias;
+    private String target_db_alias;
     private Date create_date;
     private Date update_date;
 
@@ -33,6 +35,12 @@ public class KfkMigList extends Search {
 
     public String getUse_yn() { return use_yn; }
     public void setUse_yn(String use_yn) { this.use_yn = use_yn; }
+
+    public String getSource_db_alias() { return source_db_alias; }
+    public void setSource_db_alias(String source_db_alias) { this.source_db_alias = source_db_alias; }
+
+    public String getTarget_db_alias() { return target_db_alias; }
+    public void setTarget_db_alias(String target_db_alias) { this.target_db_alias = target_db_alias; }
 
     public Date getCreate_date() { return create_date; }
     public void setCreate_date(Date create_date) { this.create_date = create_date; }

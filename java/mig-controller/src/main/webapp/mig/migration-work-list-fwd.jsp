@@ -81,6 +81,7 @@
                                                     href="./migration-master-list.jsp">Data 이관 Master</a></li>
                                             <li class="nav-item"><a class="nav-link active fw-bold text-warning"
                                                     href="./migration-work-list.jsp">이관 진행 현황</a></li>
+                                            <li class="nav-item"><a class="nav-link" href="./kfk-mig-list.jsp">KAFKA 목록</a></li>
                                             <li class="nav-item"><a class="nav-link" href="./db-con-list.jsp">DB
                                                     Connection 관리</a></li>
                                             <li class="nav-item"><a class="nav-link" href="./type-mapping-list.jsp">DB Type 관리</a></li>
